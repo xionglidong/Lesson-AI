@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学生答题题系统 - 野渡无人喊你做题题</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <script src="./js/localforage.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4F46E5',
+            secondary: '#10B981',
+            accent: '#F59E0B',
+            dark: '#1F2937',
+            sky: {
+              50: '#F0F9FF',
+              100: '#E0F2FE',
+            }
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style>
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .answer-card { background-color: #f8fafc; border-radius: 12px; }
+    .option-item { transition: all 0.2s ease; }
+    .option-item:hover { background-color: #e2e8f0; transform: translateX(4px); }
+    .question-item { transition: all 0.2s ease; }
+    .question-item:hover { transform: translateY(-2px); }
+    .animate-fadeIn { animation: fadeIn 0.5s ease forwards; }
+    .badge-new { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 999px; }
+    .result-correct { background-color: #e6ffed; color: #10b981; border-left: 3px solid #10b981; }
+    .result-incorrect { background-color: #fee2e2; color: #ef4444; border-left: 3px solid #ef4444; }
+  </style>
+</head>
+
+<body class="font-sans bg-sky-50 min-h-screen">
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-pencil-square-o text-primary text-2xl"></i>
+        <h1 class="text-xl font-bold text-primary">野渡无人喊你做题</h1>
+      </div>
+      
+      <nav class="hidden md:flex items-center space-x-6">
+        <a href="index.html" class="text-gray-600 hover:text-primary">首页</a>
+        <a href="student.html" class="text-primary font-medium">学生入口</a>
+      </nav>
+      
+      <button class="md:hidden p-2" id="mobile-menu-btn">
+        <i class="fa fa-bars text-gray-600"></i>
+      </button>
+    </div>
+    
+    <div id="mobile-menu" class="hidden bg-white border-t md:hidden">
+      <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
+        <a href="index.html" class="py-2 text-gray-600">首页</a>
+        <a href="student.html" class="py-2 text-primary font-medium">学生入口</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-bold mb-4">学生答题入口</h2>
+      <p class="text-gray-600">请填写个人信息并查看积分相关信息</p>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div class="grid md:grid-cols-3 gap-4 items-end">
+        <div>
+          <label class="block text-gray-700 mb-2">姓名</label>
+          <input type="text" id="student-name" 
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" 
+                 placeholder="请输入姓名">
+        </div>
+        <div>
+          <label class="block text-gray-700 mb-2">学号</label>
+          <input type="text" id="student-id" 
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" 
+                 placeholder="请输入学号">
+        </div>
+        <div>
+          <button id="login-btn" class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-all w-full">
+            登录 <i class="fa fa-sign-in ml-1"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="user-points-card" class="bg-white rounded-xl shadow-md p-6 mb-8 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-bold flex items-center">
+            <i class="fa fa-user-circle text-primary mr-2"></i> 
+            <span id="user-name-display">张三</span>
+            <span class="text-sm text-gray-500 ml-2" id="user-id-display">学号: 2023001</span>
+          </h3>
+          <p class="text-gray-600 mt-1">当前排名: <span id="user-rank">第5名</span></p>
+        </div>
+        <div class="text-right">
+          <p class="text-3xl font-bold text-accent" id="user-points">800分</p>
+          <p class="text-sm text-gray-500">今日可答题: <span class="text-secondary">3次</span></p>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t">
+        <div class="flex items-center">
+          <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div id="points-progress" class="bg-accent h-2.5 rounded-full" style="width: 80%"></div>
+          </div>
+          <span class="ml-3 text-sm text-gray-500">距离下一级: 200分</span>
+        </div>
+      </div>
+    </div>
+    
+    <div id="exam-container" class="hidden">
+      <div id="grade1" class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+        <h3 class="text-xl font-bold mb-4 flex items-center">
+          <i class="fa fa-book text-primary mr-2"></i> 高一年级套卷
+          <span id="grade1PaperCount" class="ml-2 text-sm bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">0套</span>
+        </h3>
+        <div class="space-y-4" id="grade1PaperList">
+          <div class="text-center text-gray-500 py-6">加载中...</div>
+        </div>
+      </div>
+
+      <div id="grade2" class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+        <h3 class="text-xl font-bold mb-4 flex items-center">
+          <i class="fa fa-book text-primary mr-2"></i> 高二年级套卷
+          <span id="grade2PaperCount" class="ml-2 text-sm bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">0套</span>
+        </h3>
+        <div class="space-y-4" id="grade2PaperList">
+          <div class="text-center text-gray-500 py-6">加载中...</div>
+        </div>
+      </div>
+
+      <div id="grade3" class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+        <h3 class="text-xl font-bold mb-4 flex items-center">
+          <i class="fa fa-book text-primary mr-2"></i> 高三年级套卷
+          <span id="grade3PaperCount" class="ml-2 text-sm bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">0套</span>
+        </h3>
+        <div class="space-y-4" id="grade3PaperList">
+          <div class="text-center text-gray-500 py-6">加载中...</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+      <h3 class="text-xl font-bold mb-4 flex items-center">
+        <i class="fa fa-trophy text-accent mr-2"></i> 积分排行榜
+      </h3>
+      <div class="grid md:grid-cols-2 gap-3" id="ranking-list">
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold flex items-center">
+          <i class="fa fa-gift text-primary mr-2"></i> 积分兑换奖品
+        </h3>
+        <button id="edit-prizes-btn" class="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full hidden">
+          <i class="fa fa-edit mr-1"></i> 编辑奖品
+        </button>
+      </div>
+      
+      <div class="grid md:grid-cols-3 gap-4" id="prizes-container">
+        </div>
+      
+      <div id="prize-edit-form" class="mt-6 hidden">
+        <h4 class="font-bold mb-3">编辑奖品</h4>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-gray-700 mb-2">奖品名称</label>
+            <input type="text" id="prize-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block text-gray-700 mb-2">所需积分</label>
+            <input type="number" id="prize-points" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block text-gray-700 mb-2">描述</label>
+            <input type="text" id="prize-desc" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          </div>
+        </div>
+        <div class="mt-4 flex justify-end space-x-3">
+          <button id="cancel-edit-prize" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">取消</button>
+          <button id="save-prize" class="px-4 py-2 bg-primary text-white rounded-lg">保存</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="exchange-history" class="bg-white rounded-xl shadow-md p-6 mb-8 hidden">
+      <h3 class="text-xl font-bold mb-4 flex items-center">
+        <i class="fa fa-history text-primary mr-2"></i> 兑换记录
+      </h3>
+      <div id="history-list" class="space-y-3">
+        </div>
+    </div>
+    
+    <div id="answerCardModal" class="fixed inset-0 bg-black/60 flex items items-center items-center justify-center hidden z-50 backdrop-blur-sm">
+      <div class="bg-white rounded-xl p-8 max-w-lg w-full mx-4 transform transition-all scale-95 opacity-0" id="modalContent">
+        <div class="flex justify-between items-start mb-6">
+          <h3 class="text-xl font-bold text-gray-800" id="modalPaperTitle">第一一套一套海淀期末考试题</h3>
+          <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fa fa-times text-xl"></i>
+          </button>
+        </div>
+        
+        <div class="mb-6 space-y-3">
+            <div class="flex justify-between items-center text-sm font-medium">
+                <span class="flex items-center text-primary">
+                    <i class="fa fa-clock-o mr-2"></i> 耗时: <span id="timerDisplay">00:00</span>
+                </span>
+                <span id="progressText" class="text-gray-600">0 / 0 题</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="progressBar" class="bg-secondary h-2 rounded-full" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="mb-6 flex items-center">
+          <span id="modalPaperInfo" class="bg-blue-100 text-blue-500 px-4 py-2 rounded-full text-sm font-medium">共3题 · 每题2分 · 总分6分</span>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 mb-6" id="questionNav">
+          </div>
+
+        <div class="answer-card p-6 mb-8 border border-gray-200" id="questionContent">
+          <div class="text-center text-gray-500 py-6">请选择左侧题目开始作答</div>
+        </div>
+        
+        <div class="flex justify-between">
+          <button id="prevQuestionBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            上一题
+          </button>
+          <button id="nextQuestionBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            下一题
+          </button>
+          <button id="submitAllBtn" class="px-8 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            提交所有答案
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="historyDetailModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl p-8 max-w-xl w-full mx-4 transform transition-all scale-95 opacity-0" id="historyDetailContent">
+            <div class="flex justify-between items-start mb-6">
+                <h3 class="text-xl font-bold text-gray-800" id="historyModalTitle">历史作答详情</h3>
+                <button id="closeHistoryDetailModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="historySummary" class="bg-primary/5 p-4 rounded-lg mb-6">
+                <p class="text-lg font-bold text-primary mb-1">得分: <span id="historyScoreDisplay">0/0分</span></p>
+                <p class="text-sm text-gray-600">耗时: <span id="historyTimeDisplay">00:00</span> | 提交时间: <span id="historySubmitTime"></span></p>
+            </div>
+
+            <div class="max-h-96 overflow-y-auto pr-2">
+                <h4 class="font-bold text-gray-700 mb-3">题目对错详情与解析：</h4>
+                <div id="historyDetailsList" class="space-y-3">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="scoreDetailModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+      <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center transform transition-all scale-95 opacity-0" id="scoreDetailContent">
+        <div class="text-green-500 text-4xl mb-4">
+          <i class="fa fa-trophy"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2" id="scoreModalTitle">作答提交成功！</h3>
+        <p class="text-3xl font-bold mb-4 text-primary" id="finalScoreDisplay">0分</p>
+        <p class="text-gray-600 mb-6" id="scoreMessage">本次答题得分已加入您的总积分！</p>
+        
+        <div class="bg-gray-50 p-4 rounded-lg max-h-40 overflow-y-auto mb-6 text-left">
+          <h4 class="font-bold mb-2">得分详情：</h4>
+          <div id="scoreDetailList" class="space-y-1 text-sm">
+            </div>
+        </div>
+        
+        <button id="closeScoreDetailModalBtn" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+          确定
+        </button>
+      </div>
+    </div>
+    
+    <div id="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 transform transition-all scale-95 opacity-0" id="modal-general-content">
+        <div class="text-center">
+          <div id="modal-icon" class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fa fa-check text-secondary text-2xl"></i>
+          </div>
+          <h3 id="modal-title" class="text-xl font-bold mb-2">兑换成功</h3>
+          <p id="modal-message" class="text-gray-600 mb-6">您已成功兑换学习资料包，积分已扣除500分</p>
+          <button id="modal-close" class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90">
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="new-paper-modal" class="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 z-40 hidden animate-fadeIn">
+      <div class="flex items-center">
+        <i class="fa fa-bell text-accent text-xl mr-2"></i>
+        <p class="text-gray-700 mr-4">有新的套卷发布啦！</p>
+        <button id="refresh-papers-btn" class="text-primary font-medium">立即查看</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-dark text-white py-8 mt-10">
+    <div class="container mx-auto px-4 text-center">
+      <p>© 2025 野渡无人喊你做题 | 版权所有</p>
+    </div>
+  </footer>
+
+  <script>
+    // 移动端菜单
+    document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+      document.getElementById('mobile-menu').classList.toggle('hidden');
+    });
+    
+    // --- 数据存取工具函数 ---
+    
+    // 使用 LocalForage 异步获取数据
+    async function getData(key) {
+        return await localforage.getItem(key);
+    }
+
+    // 使用 LocalForage 异步保存数据
+    async function saveData(key, value) {
+        await localforage.setItem(key, value);
+    }
+    
+    // 全局变量 - 登录和积分相关
+    let userPoints = 0;
+    let userName = '';
+    let userId = '';
+    let userRank = 0;
+    
+    // 全局变量 - 答题相关
+    const PAPER_STORAGE_KEY = 'gradePapers';
+    const ANSWER_STORAGE_KEY = 'studentAnswers';
+    const STUDENT_INFO_KEY = 'studentInfo';
+    const STUDENT_POINTS_KEY = 'studentPoints';
+    const EXCHANGE_RECORDS_KEY = 'exchangeRecords';
+    const PRIZES_STORAGE_KEY = 'exchangePrizes';
+    let currentPaper = null;
+    let currentQuestionIndex = 0;
+    let studentAnswers = [];
+    let studentInfo = {};
+    let studentPointsData = {}; // 异步加载
+    let exchangeRecords = []; // 异步加载
+    let prizes = []; // 异步加载
+    
+    // --- 计时器变量 ---
+    let timerInterval = null;
+    let secondsElapsed = 0;
+
+    // DOM元素 - 登录相关
+    const loginBtn = document.getElementById('login-btn');
+    const studentNameInput = document.getElementById('student-name');
+    const studentIdInput = document.getElementById('student-id');
+    const userPointsCard = document.getElementById('user-points-card');
+    const exchangeHistory = document.getElementById('exchange-history');
+    const examContainer = document.getElementById('exam-container');
+    const rankingList = document.getElementById('ranking-list');
+    const historyList = document.getElementById('history-list');
+    const noExchangeHint = document.createElement('div');
+    noExchangeHint.className = 'text-center text-gray-500 py-6';
+    noExchangeHint.innerHTML = '<i class="fa fa-inbox text-3xl mb-2"></i><p>暂无兑换记录</p>';
+    
+    // 奖品编辑相关元素
+    const editPrizesBtn = document.getElementById('edit-prizes-btn');
+    const prizeEditForm = document.getElementById('prize-edit-form');
+    const cancelEditPrize = document.getElementById('cancel-edit-prize');
+    const savePrize = document.getElementById('save-prize');
+    const prizesContainer = document.getElementById('prizes-container');
+    
+    // DOM元素 - 答题相关
+    const grade1PaperList = document.getElementById('grade1PaperList');
+    const grade2PaperList = document.getElementById('grade2PaperList');
+    const grade3PaperList = document.getElementById('grade3PaperList');
+    const grade1PaperCount = document.getElementById('grade1PaperCount');
+    const grade2PaperCount = document.getElementById('grade2PaperCount');
+    const grade3PaperCount = document.getElementById('grade3PaperCount');
+
+    // 弹窗元素 - 答题相关
+    const answerCardModal = document.getElementById('answerCardModal');
+    const modalContent = document.getElementById('modalContent');
+    const modalPaperTitle = document.getElementById('modalPaperTitle');
+    const modalPaperInfo = document.getElementById('modalPaperInfo');
+    const questionNav = document.getElementById('questionNav');
+    const questionContent = document.getElementById('questionContent');
+    const prevQuestionBtn = document.getElementById('prevQuestionBtn');
+    const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+    const submitAllBtn = document.getElementById('submitAllBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    
+    // *** 计时器和进度条 DOM 元素 ***
+    const timerDisplay = document.getElementById('timerDisplay');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    // 得分详情弹窗元素 (提交答案后显示)
+    const scoreDetailModal = document.getElementById('scoreDetailModal');
+    const scoreDetailContent = document.getElementById('scoreDetailContent');
+    const finalScoreDisplay = document.getElementById('finalScoreDisplay');
+    const scoreDetailList = document.getElementById('scoreDetailList');
+    const scoreMessage = document.getElementById('scoreMessage');
+    const closeScoreDetailModalBtn = document.getElementById('closeScoreDetailModalBtn');
+    
+    // *** 历史详情弹窗元素 (新增) ***
+    const historyDetailModal = document.getElementById('historyDetailModal');
+    const historyDetailContent = document.getElementById('historyDetailContent');
+    const historyModalTitle = document.getElementById('historyModalTitle');
+    const historyScoreDisplay = document.getElementById('historyScoreDisplay');
+    const historyTimeDisplay = document.getElementById('historyTimeDisplay');
+    const historySubmitTime = document.getElementById('historySubmitTime');
+    const historyDetailsList = document.getElementById('historyDetailsList');
+    const closeHistoryDetailModalBtn = document.getElementById('closeHistoryDetailModalBtn');
+    
+    let allAnswerRecords = []; // 用于缓存所有学生的作答记录
+
+    const newPaperModal = document.getElementById('new-paper-modal');
+    const refreshPapersBtn = document.getElementById('refresh-papers-btn');
+    
+    // 初始化
+    async function init() {
+      // 首次加载时同步加载必要数据
+      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
+      exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
+      prizes = await getData(PRIZES_STORAGE_KEY) || [];
+      
+      // 绑定登录事件
+      loginBtn.addEventListener('click', handleLogin);
+      
+      // 绑定奖品兑换事件 (在 renderPrizes 中绑定)
+      
+      // 绑定奖品编辑事件
+      editPrizesBtn.addEventListener('click', togglePrizeEditForm);
+      cancelEditPrize.addEventListener('click', togglePrizeEditForm);
+      savePrize.addEventListener('click', savePrizeData);
+      
+      // 绑定弹窗事件
+      document.getElementById('modal-close').addEventListener('click', closeGeneralModal);
+      refreshPapersBtn.addEventListener('click', async function() {
+        newPaperModal.classList.add('hidden');
+        await loadAndRenderPapers();
+      });
+      
+      // 绑定答题相关事件
+      closeModalBtn.addEventListener('click', closeAnswerModal);
+      answerCardModal.addEventListener('click', e => e.target === answerCardModal && closeAnswerModal());
+      prevQuestionBtn.addEventListener('click', goToPrevQuestion);
+      nextQuestionBtn.addEventListener('click', goToNextQuestion);
+      submitAllBtn.addEventListener('click', submitAllAnswers);
+      closeScoreDetailModalBtn.addEventListener('click', closeScoreDetailModal); 
+      
+      // *** 绑定历史详情弹窗关闭事件 ***
+      closeHistoryDetailModalBtn.addEventListener('click', closeHistoryDetailModal);
+      historyDetailModal.addEventListener('click', e => e.target === historyDetailModal && closeHistoryDetailModal());
+
+      // 确保所有链接可点击
+      document.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.location.href = this.getAttribute('href');
+        });
+      });
+      
+      // 监听异步数据加载（取代原有的 localStorage 监听）
+      await initPrizes();
+      await loadRankingList();
+    }
+
+    // --- 计时器控制函数 ---
+
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        secondsElapsed = 0; // 重置计时
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+            secondsElapsed++;
+            updateTimerDisplay();
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+
+    function updateTimerDisplay() {
+        const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const seconds = String(secondsElapsed % 60).padStart(2, '0');
+        timerDisplay.textContent = `${minutes}:${seconds}`;
+    }
+    
+    // 初始化奖品数据
+    async function initPrizes() {
+      let currentPrizes = await getData(PRIZES_STORAGE_KEY);
+      if (!currentPrizes || currentPrizes.length === 0) {
+        // 初始奖品数据
+        prizes = [
+          {
+            id: 'p1',
+            name: '学习资料包',
+            points: 500,
+            description: '精选编程学习资料',
+            icon: 'fa-book',
+            iconColor: 'text-primary',
+            bgColor: 'bg-blue-100'
+          },
+          {
+            id: 'p2',
+            name: '咖啡券',
+            points: 1000,
+            description: '星巴克中杯咖啡',
+            icon: 'fa-coffee',
+            iconColor: 'text-secondary',
+            bgColor: 'bg-green-100'
+          },
+          {
+            id: 'p3',
+            name: '耳机',
+            points: 3000,
+            description: '无线蓝牙耳机',
+            icon: 'fa-headphones',
+            iconColor: 'text-purple-500',
+            bgColor: 'bg-purple-100'
+          }
+        ];
+        await saveData(PRIZES_STORAGE_KEY, prizes);
+      } else {
+          prizes = currentPrizes;
+      }
+      renderPrizes();
+    }
+    
+    // 渲染奖品列表
+    function renderPrizes() {
+      prizesContainer.innerHTML = '';
+      prizes.forEach(prize => {
+        const prizeCard = document.createElement('div');
+        prizeCard.className = 'border rounded-lg p-4 text-center hover:shadow-md transition-shadow prize-card';
+        prizeCard.dataset.points = prize.points;
+        prizeCard.dataset.id = prize.id;
+        
+        prizeCard.innerHTML = `
+          <div class="w-16 h-16 ${prize.bgColor} rounded-full flex items-center justify-center mx-auto mb-3">
+            <i class="fa ${prize.icon} ${prize.iconColor} text-2xl"></i>
+          </div>
+          <h4 class="font-medium mb-1">${prize.name}</h4>
+          <p class="text-sm text-gray-500 mb-2">${prize.description}</p>
+          <p class="text-accent font-bold">${prize.points}分</p>
+          <button class="mt-2 text-sm bg-gray-200 text-gray-500 px-3 py-1 rounded-full prize-btn" data-prize="${prize.name}">积分不足</button>
+        `;
+        
+        prizesContainer.appendChild(prizeCard);
+      });
+      
+      // 重新绑定兑换事件
+      document.querySelectorAll('.prize-btn').forEach(btn => {
+        btn.addEventListener('click', handlePrizeExchange);
+      });
+      
+      // 如果已登录，更新奖品按钮状态
+      if (userName) {
+        updatePrizeButtons();
+      }
+    }
+    
+    // 切换奖品编辑表单显示状态
+    function togglePrizeEditForm() {
+      prizeEditForm.classList.toggle('hidden');
+    }
+    
+    // 保存奖品数据 (仅在学生端用于测试，实际应由 Admin 端管理)
+    async function savePrizeData() {
+      const prizeName = document.getElementById('prize-name').value.trim();
+      const prizePoints = parseInt(document.getElementById('prize-points').value);
+      const prizeDesc = document.getElementById('prize-desc').value.trim();
+      
+      if (!prizeName || !prizePoints || !prizeDesc) {
+        showGeneralModal('输入错误', '请填写完整的奖品信息', 'warning');
+        return;
+      }
+      
+      // 创建新奖品
+      const newPrize = {
+        id: 'prize_' + Date.now(),
+        name: prizeName,
+        points: prizePoints,
+        description: prizeDesc,
+        icon: 'fa-gift',
+        iconColor: 'text-primary',
+        bgColor: 'bg-blue-100'
+      };
+      
+      prizes.push(newPrize);
+      await saveData(PRIZES_STORAGE_KEY, prizes);
+      
+      // 刷新奖品列表
+      renderPrizes();
+      
+      // 关闭表单
+      togglePrizeEditForm();
+      
+      // 清空表单
+      document.getElementById('prize-name').value = '';
+      document.getElementById('prize-points').value = '';
+      document.getElementById('prize-desc').value = '';
+      
+      showGeneralModal('成功', '奖品添加成功', 'success');
+    }
+    
+    // 处理登录
+    async function handleLogin() {
+      const name = studentNameInput.value.trim();
+      const id = studentIdInput.value.trim();
+      
+      if (!name || !id) {
+        alert('请输入姓名和学号');
+        return;
+      }
+      
+      // 保存学生信息
+      userName = name;
+      userId = id;
+      studentInfo = { name, id };
+      await saveData(STUDENT_INFO_KEY, studentInfo);
+      
+      // 从 IndexedDB 加载最新的积分数据
+      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
+      
+      // 初始化学生积分数据
+      if (!studentPointsData[id]) {
+        studentPointsData[id] = {
+          name: name,
+          id: id,
+          points: 0,
+          lastUpdate: new Date().toLocaleString()
+        };
+        await saveData(STUDENT_POINTS_KEY, studentPointsData);
+      }
+      
+      // 获取当前积分
+      userPoints = studentPointsData[id].points;
+      
+      // 更新用户信息显示
+      document.getElementById('user-name-display').textContent = userName;
+      document.getElementById('user-id-display').textContent = `学号: ${userId}`;
+      updateUserPointsDisplay();
+      
+      // 计算排名
+      await calculateUserRank();
+      
+      // 显示用户卡片和兑换记录
+      userPointsCard.classList.remove('hidden');
+      exchangeHistory.classList.remove('hidden');
+      
+      // 显示答题区域并加载套卷
+      examContainer.classList.remove('hidden');
+      await loadAndRenderPapers();
+      
+      // 加载兑换记录
+      await loadExchangeRecords();
+      
+      // 更新奖品按钮状态
+      updatePrizeButtons();
+      
+      // 首次登录才显示提示
+      showGeneralModal('登录成功', `欢迎 ${userName}（学号：${userId}），当前积分：${userPoints}分`, 'success');
+    }
+    
+    // 更新用户积分显示
+    function updateUserPointsDisplay() {
+      document.getElementById('user-points').textContent = `${userPoints}分`;
+      
+      // 计算升级进度
+      const level = Math.floor(userPoints / 1000) + 1;
+      const nextLevelPoints = level * 1000;
+      const progress = ((userPoints % 1000) / 1000) * 100;
+      
+      document.getElementById('points-progress').style.width = `${progress}%`;
+      // 修复：确保目标元素选择正确
+      document.querySelector('#user-points-card .mt-4.pt-4.border-t .ml-3.text-sm.text-gray-500').textContent = `距离下一级: ${nextLevelPoints - userPoints}分`;
+    }
+    
+    // 计算用户排名
+    async function calculateUserRank() {
+      // 重新从 IndexedDB 加载数据以确保最新
+      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
+      
+      // 转换为数组并排序
+      const studentsArray = Object.values(studentPointsData);
+      studentsArray.sort((a, b) => b.points - a.points);
+      
+      // 查找当前用户排名
+      const userIndex = studentsArray.findIndex(s => s.id === userId);
+      userRank = userIndex + 1;
+      
+      // 更新排名显示
+      document.getElementById('user-rank').textContent = `第${userRank}名`;
+    }
+    
+    // 加载排行榜
+    async function loadRankingList() {
+      rankingList.innerHTML = '';
+      
+      // 从 IndexedDB 加载最新数据
+      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
+      
+      // 转换为数组并排序
+      const studentsArray = Object.values(studentPointsData);
+      studentsArray.sort((a, b) => b.points - a.points);
+      
+      // 只显示前10名
+      const topStudents = studentsArray.slice(0, 10);
+      
+      if (topStudents.length === 0) {
+        rankingList.innerHTML = '<div class="md:col-span-2 text-center text-gray-500 py-6">暂无排名数据</div>';
+        return;
+      }
+
+      topStudents.forEach((student, index) => {
+        let rankStyle = '';
+        if (index === 0) {
+          rankStyle = 'bg-yellow-500 text-white';
+        } else if (index === 1) {
+          rankStyle = 'bg-gray-300 text-gray-700';
+        } else if (index === 2) {
+          rankStyle = 'bg-orange-600 text-white';
+        } else {
+          rankStyle = 'bg-gray-200 text-gray-700';
+        }
+        
+        const rankItem = document.createElement('div');
+        rankItem.className = 'flex items-center p-3 border rounded-lg';
+        
+        rankItem.innerHTML = `
+          <div class="w-8 h-8 rounded-full ${rankStyle} flex items-center justify-center font-bold mr-3">
+            ${index + 1}
+          </div>
+          <div class="flex-1">
+            <p class="font-medium">${student.name}</p>
+            <p class="text-sm text-gray-500">学号: ${student.id || '未知'}</p>
+          </div>
+          <div class="text-right">
+            <p class="font-bold text-accent">${student.points}分</p>
+          </div>
+        `;
+        
+        rankingList.appendChild(rankItem);
+      });
+    }
+    
+    // 加载兑换记录
+    async function loadExchangeRecords() {
+      // 从 IndexedDB 加载最新数据
+      exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
+      
+      const userRecords = exchangeRecords.filter(record => record.studentId === userId);
+      
+      if (userRecords.length === 0) {
+        historyList.innerHTML = '';
+        historyList.appendChild(noExchangeHint);
+        return;
+      }
+      
+      historyList.innerHTML = '';
+      userRecords.forEach(record => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'flex items-center justify-between p-3 border rounded-lg bg-gray-50';
+        historyItem.innerHTML = `
+          <div>
+            <p class="font-medium">${record.prizeName}</p>
+            <p class="text-sm text-gray-500">${record.time}</p>
+          </div>
+          <p class="text-accent font-bold">-${record.points}分</p>
+        `;
+        
+        historyList.appendChild(historyItem);
+      });
+    }
+    
+    // 更新奖品按钮状态
+    function updatePrizeButtons() {
+      const prizeCards = document.querySelectorAll('.prize-card');
+      
+      prizeCards.forEach(card => {
+        const requiredPoints = parseInt(card.dataset.points);
+        const prizeBtn = card.querySelector('.prize-btn');
+        const prizeName = prizeBtn.dataset.prize;
+        
+        if (userPoints >= requiredPoints) {
+          prizeBtn.classList.remove('bg-gray-200', 'text-gray-500');
+          prizeBtn.classList.add('bg-primary/10', 'text-primary');
+          prizeBtn.textContent = '兑换';
+          prizeBtn.disabled = false;
+        } else {
+          prizeBtn.classList.remove('bg-primary/10', 'text-primary');
+          prizeBtn.classList.add('bg-gray-200', 'text-gray-500');
+          prizeBtn.textContent = '积分不足';
+          prizeBtn.disabled = true;
+        }
+      });
+    }
+    
+    // 奖品兑换处理
+    async function handlePrizeExchange() {
+      if (!userName) {
+        showGeneralModal('请先登录', '请先登录后再进行兑换', 'warning');
+        return;
+      }
+      
+      const prizeBtn = this;
+      const prizeName = prizeBtn.dataset.prize;
+      const prizeCard = prizeBtn.closest('.prize-card');
+      const requiredPoints = parseInt(prizeCard.dataset.points);
+      
+      if (userPoints < requiredPoints) {
+        showGeneralModal('兑换失败', `您的积分不足，需要${requiredPoints}分`, 'warning');
+        return;
+      }
+      
+      if (!confirm(`确定要兑换${prizeName}吗？将消耗${requiredPoints}积分。`)) {
+        return;
+      }
+      
+      // 记录兑换历史
+      const exchangeRecord = {
+        id: 'exchange_' + Date.now(),
+        studentId: userId,
+        studentName: userName,
+        prizeName: prizeName,
+        points: requiredPoints,
+        time: new Date().toLocaleString()
+      };
+      
+      exchangeRecords.push(exchangeRecord);
+      await saveData(EXCHANGE_RECORDS_KEY, exchangeRecords);
+      
+      // 更新用户积分
+      userPoints -= requiredPoints;
+      studentPointsData[userId].points = userPoints;
+      studentPointsData[userId].lastUpdate = new Date().toLocaleString();
+      await saveData(STUDENT_POINTS_KEY, studentPointsData);
+      
+      // 刷新UI
+      updateUserPointsDisplay();
+      updatePrizeButtons();
+      await loadExchangeRecords();
+      await calculateUserRank();
+      await loadRankingList();
+      
+      // 显示成功弹窗
+      showGeneralModal('兑换成功', `您已成功兑换${prizeName}，积分已扣除${requiredPoints}分`, 'success');
+    }
+    
+    // 显示通用弹窗
+    function showGeneralModal(title, message, type = 'success') {
+      const modal = document.getElementById('modal');
+      const modalContent = document.getElementById('modal-general-content');
+      const modalTitle = document.getElementById('modal-title');
+      const modalMessage = document.getElementById('modal-message');
+      const modalIcon = document.getElementById('modal-icon');
+      
+      // 设置弹窗类型样式
+      if (type === 'success') {
+        modalIcon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
+        modalIcon.innerHTML = '<i class="fa fa-check text-secondary text-2xl"></i>';
+      } else if (type === 'warning') {
+        modalIcon.className = 'w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4';
+        modalIcon.innerHTML = '<i class="fa fa-exclamation-circle text-orange-500 text-2xl"></i>';
+      }
+      
+      modalTitle.textContent = title;
+      modalMessage.textContent = message;
+      
+      // 显示弹窗
+      modal.classList.remove('hidden');
+      
+      // 动画效果
+      setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+    
+    // 关闭通用弹窗
+    function closeGeneralModal() {
+      const modal = document.getElementById('modal');
+      const modalContent = document.getElementById('modal-general-content');
+      
+      // 动画效果
+      modalContent.classList.remove('scale-100', 'opacity-100');
+      modalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
+    
+    // 加载并渲染套卷列表
+    async function loadAndRenderPapers() {
+      // 优先读取 LocalForage 中的真实数据（管理员添加的套卷）
+      const papers = await getData(PAPER_STORAGE_KEY) || [];
+      
+      // 缓存所有学生的作答记录
+      allAnswerRecords = await getData(ANSWER_STORAGE_KEY) || [];
+
+      // 兼容旧数据格式
+      if (papers.length === 0) {
+        // 模拟初始数据（仅在无真实数据时使用）
+        const mockPapers = [
+          {
+            id: 'p1',
+            grade: 'grade1',
+            name: '高一数学第一单元测试',
+            questionCount: 5,
+            singlePoints: 2,
+            totalPoints: 10,
+            options: {
+              A: '选项A',
+              B: '选项B',
+              C: '选项C',
+              D: '选项D'
+            },
+            answers: ['A', 'B', 'C', 'D', 'A'],
+            createTime: new Date().toLocaleString()
+          },
+          {
+            id: 'p2',
+            grade: 'grade1',
+            name: '高一语文月考卷',
+            questionCount: 3,
+            singlePoints: 3,
+            totalPoints: 9,
+            options: {
+              A: '选项A',
+              B: '选项B',
+              C: '选项C',
+              D: '选项D'
+            },
+            answers: ['B', 'C', 'A'],
+            createTime: new Date().toLocaleString()
+          },
+          {
+            id: 'p3',
+            grade: 'grade2',
+            name: '高二物理期中测试',
+            questionCount: 4,
+            singlePoints: 2,
+            totalPoints: 8,
+            options: {
+              A: '选项A',
+              B: '选项B',
+              C: '选项C',
+              D: '选项D'
+            },
+            answers: ['C', 'D', 'A', 'B'],
+            createTime: new Date().toLocaleString()
+          }
+        ];
+        await saveData(PAPER_STORAGE_KEY, mockPapers);
+        // 重新加载并渲染
+        const reloadedPapers = await getData(PAPER_STORAGE_KEY) || [];
+        return processAndRenderPapers(reloadedPapers);
+      }
+      
+      processAndRenderPapers(papers);
+    }
+    
+    // 处理和渲染套卷的内部函数
+    function processAndRenderPapers(papers) {
+      // 按年级过滤
+      const grade1Papers = papers.filter(p => p.grade === 'grade1');
+      const grade2Papers = papers.filter(p => p.grade === 'grade2');
+      const grade3Papers = papers.filter(p => p.grade === 'grade3');
+      
+      // 更新套卷数量
+      grade1PaperCount.textContent = `${grade1Papers.length}套`;
+      grade2PaperCount.textContent = `${grade2Papers.length}套`;
+      grade3PaperCount.textContent = `${grade3Papers.length}套`;
+      
+      // 渲染各年级套卷列表
+      renderPaperList(grade1PaperList, grade1Papers);
+      renderPaperList(grade2PaperList, grade2Papers);
+      renderPaperList(grade3PaperList, grade3Papers);
+    }
+    
+    /**
+     * 检查当前学生是否已经提交过该套题
+     * @param {string} paperId 套卷 ID
+     * @returns {Promise<object | null>} 返回最新的作答记录，如果没有则返回 null
+     */
+    async function getLatestAnswerRecord(paperId) {
+        const userRecords = allAnswerRecords.filter(a => a.studentId === userId && a.paperId === paperId);
+        
+        if (userRecords.length === 0) {
+            return null;
+        }
+        
+        // 找到最新提交的记录 (假设 submitTime 是可比较的字符串或时间戳)
+        userRecords.sort((a, b) => new Date(b.submitTime).getTime() - new Date(a.submitTime).getTime());
+        return userRecords[0];
+    }
+
+
+    // 渲染套卷列表（添加新套卷标识和详情按钮）
+    function renderPaperList(container, papers) {
+      if (papers.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-6">暂无套卷</div>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      papers.forEach(async (paper, index) => {
+        // 判断是否为24小时内新增的套卷
+        const isNew = paper.createTime ? 
+          new Date() - new Date(paper.createTime) < 24 * 60 * 60 * 1000 : 
+          false;
+        
+        // 异步获取最新的作答记录
+        const latestRecord = await getLatestAnswerRecord(paper.id);
+        const hasAnswered = latestRecord !== null;
+        
+        let statusHtml = '';
+        let buttonHtml = '';
+        
+        if (hasAnswered) {
+             statusHtml = `<span class="ml-3 text-sm font-bold ${latestRecord.isFirstSubmission ? 'text-secondary' : 'text-red-500'}">
+                ${latestRecord.isFirstSubmission ? '已作答' : '已重做'} · 得分 ${latestRecord.score}/${paper.totalPoints}
+            </span>`;
+             buttonHtml = `
+                <button class="text-primary hover:text-primary/70 text-sm view-history-btn" data-paper-id="${paper.id}">
+                    <i class="fa fa-eye mr-1"></i> 查看详情
+                </button>`;
+        } else {
+             statusHtml = `<span class="ml-3 text-sm text-gray-500">点击开始作答</span>`;
+             buttonHtml = ``;
+        }
+
+        const paperItem = document.createElement('div');
+        paperItem.className = 'border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer question-item bg-white relative';
+        paperItem.dataset.paperId = paper.id;
+        paperItem.innerHTML = `
+          <div class="flex flex-col">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-medium text-gray-800">${index + 1}. ${paper.name}</h4>
+                <div class="mt-2 flex items-center">
+                  <span class="bg-blue-100 text-blue-500 px-3 py-1 rounded-full text-sm font-medium">共${paper.questionCount}题 · 总分${paper.totalPoints}分</span>
+                  ${statusHtml}
+                </div>
+                ${paper.createTime ? `<p class="mt-2 text-xs text-gray-400">发布时间: ${paper.createTime}</p>` : ''}
+              </div>
+              <div class="flex-shrink-0 mt-1">${buttonHtml}</div>
+            </div>
+          </div>
+          ${isNew ? '<span class="badge-new">新</span>' : ''}
+        `;
+        
+        // 点击套卷主体打开答题卡
+        paperItem.addEventListener('click', function(e) {
+            // 确保不是点击了“查看详情”按钮
+            if (!e.target.closest('.view-history-btn')) {
+                const paperId = this.dataset.paperId;
+                openAnswerCard(paperId);
+            }
+        });
+        
+        // *** 绑定查看详情事件 ***
+        if (hasAnswered) {
+            paperItem.querySelector('.view-history-btn').addEventListener('click', function() {
+                showHistoryDetailModal(paper.id);
+            });
+        }
+        
+        container.appendChild(paperItem);
+      });
+    }
+
+    /**
+     * 显示历史作答详情弹窗 (新增功能)
+     * @param {string} paperId 套卷 ID
+     */
+    async function showHistoryDetailModal(paperId) {
+        const paper = (await getData(PAPER_STORAGE_KEY)).find(p => p.id === paperId);
+        if (!paper) return;
+
+        // 获取该学生对该套题的所有作答记录
+        const userRecords = allAnswerRecords.filter(a => a.studentId === userId && a.paperId === paperId);
+        
+        if (userRecords.length === 0) {
+            alert('未找到您的作答记录。');
+            return;
+        }
+
+        // 默认显示最新记录
+        userRecords.sort((a, b) => new Date(b.submitTime).getTime() - new Date(a.submitTime).getTime());
+        const latestRecord = userRecords[0];
+
+        // 填充基本信息
+        historyModalTitle.textContent = `${paper.name} - 历史作答详情`;
+        historyScoreDisplay.textContent = `${latestRecord.score}/${latestRecord.totalPoints}分`;
+        historySubmitTime.textContent = latestRecord.submitTime;
+        
+        // 格式化耗时
+        const timeElapsed = latestRecord.timeElapsed || 0;
+        const minutes = String(Math.floor(timeElapsed / 60)).padStart(2, '0');
+        const seconds = String(timeElapsed % 60).padStart(2, '0');
+        historyTimeDisplay.textContent = `${minutes}:${seconds}`;
+
+        // 填充详细对错列表
+        historyDetailsList.innerHTML = '';
+        
+        latestRecord.answers.forEach((ans, i) => {
+            const isCorrect = ans === paper.answers[i];
+            const detailItem = document.createElement('div');
+            detailItem.className = `p-3 rounded-lg ${isCorrect ? 'result-correct' : 'result-incorrect'}`;
+            detailItem.innerHTML = `
+                <p class="font-medium">
+                    <span class="mr-2">${i + 1}. 题目 ${i + 1}</span>
+                    <span class="text-sm">${isCorrect ? '✅ 回答正确' : '❌ 回答错误'}</span>
+                </p>
+                <div class="mt-1 text-sm space-y-0.5">
+                    <p>你的答案: <span class="font-bold">${ans}</span></p>
+                    <p>正确答案: <span class="font-bold">${paper.answers[i]}</span></p>
+                    <p class="text-xs text-gray-500">
+                        ${paper.options[paper.answers[i]] || '无选项内容'}
+                    </p>
+                </div>
+            `;
+            historyDetailsList.appendChild(detailItem);
+        });
+
+        // 显示弹窗
+        historyDetailModal.classList.remove('hidden');
+        setTimeout(() => {
+            historyDetailContent.classList.remove('scale-95', 'opacity-0');
+            historyDetailContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    // 关闭历史详情弹窗
+    function closeHistoryDetailModal() {
+        historyDetailContent.classList.remove('scale-100', 'opacity-100');
+        historyDetailContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            historyDetailModal.classList.add('hidden');
+        }, 300);
+    }
+
+    
+    // 打开答题卡
+    async function openAnswerCard(paperId) {
+      if (!userName) {
+        showGeneralModal('请先登录', '请先登录后再进行答题', 'warning');
+        return;
+      }
+
+      const papers = await getData(PAPER_STORAGE_KEY) || [];
+      currentPaper = papers.find(p => p.id === paperId);
+      
+      if (!currentPaper) return;
+      
+      // 检查是否已作答 (只用于界面提示，不阻止作答)
+      const latestRecord = await getLatestAnswerRecord(paperId);
+      const hasAnswered = latestRecord !== null;
+      
+      // *** 优化 1: 启动计时器 ***
+      stopTimer(); // 确保旧计时器停止
+      startTimer();
+      
+      // 初始化答案存储
+      studentAnswers = new Array(currentPaper.questionCount).fill(null);
+      currentQuestionIndex = 0;
+      
+      // 填充弹窗信息
+      modalPaperTitle.textContent = currentPaper.name;
+      modalPaperInfo.textContent = `共${currentPaper.questionCount}题 · 每题${currentPaper.singlePoints}分 · 总分${currentPaper.totalPoints}分`;
+      
+      // 生成题目导航
+      generateQuestionNav();
+      
+      // 渲染第一题
+      renderCurrentQuestion();
+      
+      // 更新按钮状态
+      updateNavButtons();
+      
+      // 额外的提示和提交按钮文本/禁用处理
+      if (hasAnswered) {
+          submitAllBtn.textContent = '提交 (无积分)';
+          // 提交按钮在首次渲染时默认是 disabled，但在答完所有题后会启用，此处无需特殊处理
+      } else {
+          submitAllBtn.textContent = '提交所有答案';
+      }
+
+      // 显示弹窗
+      answerCardModal.classList.remove('hidden');
+      setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+    
+    // 生成题目导航
+    function generateQuestionNav() {
+      questionNav.innerHTML = '';
+      for (let i = 0; i < currentPaper.questionCount; i++) {
+        const navBtn = document.createElement('button');
+        navBtn.className = `w-8 h-8 rounded-full flex items-center justify-center text-sm ${i === 0 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`;
+        navBtn.textContent = i + 1;
+        navBtn.dataset.questionIndex = i;
+        
+        navBtn.addEventListener('click', function() {
+          currentQuestionIndex = parseInt(this.dataset.questionIndex);
+          renderCurrentQuestion();
+          updateNavButtons();
+          updateQuestionNavStyle();
+        });
+        
+        questionNav.appendChild(navBtn);
+      }
+    }
+    
+    // 更新题目导航样式
+    function updateQuestionNavStyle() {
+      const navButtons = questionNav.querySelectorAll('button');
+      navButtons.forEach((btn, index) => {
+        if (index === currentQuestionIndex) {
+          btn.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm bg-primary text-white';
+        } else if (studentAnswers[index] !== null) {
+          btn.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm bg-green-100 text-green-700';
+        } else {
+          btn.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm bg-gray-200 text-gray-700 hover:bg-gray-300';
+        }
+      });
+    }
+    
+    // 渲染当前题目
+    function renderCurrentQuestion() {
+      const questionNumber = currentQuestionIndex + 1;
+      
+      // 生成题目内容
+      questionContent.innerHTML = `
+        <div class="mb-4">
+          <h4 class="text-lg font-medium">${questionNumber}. 这是第${questionNumber}题，考查相关知识点</h4>
+          <p class="text-gray-600 text-sm mt-2">(${currentPaper.singlePoints}分)</p>
+        </div>
+        <div class="space-y-2 mt-4">
+          ${Object.entries(currentPaper.options).map(([key, value]) => `
+            <div class="option-item p-3 border rounded-lg cursor-pointer ${studentAnswers[currentQuestionIndex] === key ? 'bg-primary/10 border-primary/30' : ''}" data-option="${key}">
+              <div class="flex items-center">
+                <div class="w-6 h-6 rounded-full border ${studentAnswers[currentQuestionIndex] === key ? 'bg-primary border-primary text-white' : 'border-gray-300'} flex items-center justify-center mr-3">
+                  ${studentAnswers[currentQuestionIndex] === key ? '<i class="fa fa-check text-xs"></i>' : key}
+                </div>
+                <span>${value}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      
+      // 绑定选项点击事件
+      questionContent.querySelectorAll('.option-item').forEach(option => {
+        option.addEventListener('click', function() {
+          const selectedOption = this.dataset.option;
+          studentAnswers[currentQuestionIndex] = selectedOption;
+          renderCurrentQuestion();
+          updateQuestionNavStyle();
+          updateNavButtons();
+        });
+      });
+      
+      // *** 优化 1: 更新进度条 ***
+      updateProgressBar();
+    }
+    
+    // *** 新增：更新进度条 ***
+    function updateProgressBar() {
+        const answeredCount = studentAnswers.filter(a => a !== null).length;
+        const totalCount = currentPaper.questionCount;
+        const progressPercentage = (answeredCount / totalCount) * 100;
+
+        progressBar.style.width = `${progressPercentage}%`;
+        progressText.textContent = `${answeredCount} / ${totalCount} 题`;
+    }
+
+    // 更新导航按钮状态
+    function updateNavButtons() {
+      // 更新上一题按钮
+      prevQuestionBtn.disabled = currentQuestionIndex === 0;
+      
+      // 更新下一题按钮
+      nextQuestionBtn.disabled = currentQuestionIndex === currentPaper.questionCount - 1;
+      
+      // 更新提交按钮
+      const allAnswered = studentAnswers.every(answer => answer !== null);
+      submitAllBtn.disabled = !allAnswered;
+      
+      // 更新导航样式
+      updateQuestionNavStyle();
+    }
+    
+    // 上一题
+    function goToPrevQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        renderCurrentQuestion();
+        updateNavButtons();
+      }
+    }
+    
+    // 下一题
+    function goToNextQuestion() {
+      if (currentQuestionIndex < currentPaper.questionCount - 1) {
+        currentQuestionIndex++;
+        renderCurrentQuestion();
+        updateNavButtons();
+      }
+    }
+    
+    // 提交所有答案
+    async function submitAllAnswers() {
+      if (!confirm(`确定要提交所有答案吗？提交后将无法修改。`)) {
+        return;
+      }
+      
+      // *** 优化 1: 停止计时器 ***
+      stopTimer();
+
+      // 检查是否已作答，决定是否增加积分
+      const latestRecord = await getLatestAnswerRecord(currentPaper.id);
+      const isFirstSubmission = latestRecord === null;
+
+      // 计算得分和详情 (计算过程不变)
+      let score = 0;
+      const scoreDetails = [];
+      studentAnswers.forEach((answer, index) => {
+        const isCorrect = answer === currentPaper.answers[index];
+        if (isCorrect) {
+          score += currentPaper.singlePoints;
+        }
+        scoreDetails.push({
+          questionNumber: index + 1,
+          isCorrect: isCorrect,
+          correctAnswer: currentPaper.answers[index],
+          yourAnswer: answer
+        });
+      });
+      
+      // 获取最新的答题记录
+      let allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+
+      // 保存答题记录 (记录总是保存)
+      const answerRecord = {
+        paperId: currentPaper.id,
+        studentId: userId,
+        studentName: userName,
+        answers: studentAnswers,
+        score: score,
+        totalPoints: currentPaper.totalPoints,
+        submitTime: new Date().toLocaleString(),
+        timeElapsed: secondsElapsed, // 记录耗时
+        isFirstSubmission: isFirstSubmission // 标记是否为首次提交
+      };
+      
+      allAnswers.push(answerRecord);
+      await saveData(ANSWER_STORAGE_KEY, allAnswers);
+      allAnswerRecords = allAnswers; // 更新缓存
+
+      
+      let message = '';
+      if (isFirstSubmission) {
+          // 只有首次提交才增加积分
+          // 确保学生积分数据是最新的
+          studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
+          studentPointsData[userId].points += score;
+          studentPointsData[userId].lastUpdate = new Date().toLocaleString();
+          await saveData(STUDENT_POINTS_KEY, studentPointsData);
+          userPoints = studentPointsData[userId].points; // 更新本地积分
+          message = `本次答题得分 **${score} 分** 已加入您的总积分！`;
+      } else {
+          // 非首次提交，不增加积分
+          message = `您已提交过本套题，本次提交分数 **${score} 分** 不会增加积分。`;
+      }
+      
+      // 关闭答题弹窗
+      closeAnswerModal();
+      
+      // 显示得分详情弹窗
+      showScoreDetailModal(score, currentPaper.totalPoints, scoreDetails, message, secondsElapsed);
+      
+      // *** 优化 2: 作答后重置输入和隐藏卡片 ***
+      studentNameInput.value = '';
+      studentIdInput.value = '';
+      userPointsCard.classList.add('hidden');
+      exchangeHistory.classList.add('hidden');
+      examContainer.classList.add('hidden');
+      
+      // 重置全局变量
+      userName = '';
+      userId = '';
+      userPoints = 0;
+
+      // 更新UI
+      await calculateUserRank();
+      await loadRankingList();
+      await loadAndRenderPapers(); // 刷新套卷列表，更新“已作答”状态
+      updatePrizeButtons();
+    }
+    
+    // 显示得分详情弹窗
+    function showScoreDetailModal(score, totalPoints, details, message, timeElapsed) {
+      finalScoreDisplay.textContent = `${score}/${totalPoints}分`;
+      scoreMessage.innerHTML = message; // 使用innerHTML来显示加粗信息
+      scoreDetailList.innerHTML = '';
+
+      // 格式化耗时
+      const minutes = String(Math.floor(timeElapsed / 60)).padStart(2, '0');
+      const seconds = String(timeElapsed % 60).padStart(2, '0');
+      const timeDisplay = `${minutes}:${seconds}`;
+
+      // 在详情列表顶部添加耗时信息
+      scoreDetailList.innerHTML = `
+        <div class="p-2 rounded-lg bg-blue-100 text-blue-700 font-bold">
+          <i class="fa fa-hourglass-half mr-2"></i> 答题耗时：${timeDisplay}
+        </div>
+      `;
+
+      details.forEach(item => {
+        const detailItem = document.createElement('div');
+        detailItem.className = `p-2 rounded-lg ${item.isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+        detailItem.innerHTML = `
+          <strong>第${item.questionNumber}题：</strong> 
+          ${item.isCorrect ? '正确' : '错误'}
+          <span class="ml-2"> | </span> 
+          正确答案: ${item.correctAnswer}
+        `;
+        scoreDetailList.appendChild(detailItem);
+      });
+      
+      scoreDetailModal.classList.remove('hidden');
+      setTimeout(() => {
+        scoreDetailContent.classList.remove('scale-95', 'opacity-0');
+        scoreDetailContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+    
+    // 关闭得分详情弹窗
+    function closeScoreDetailModal() {
+      scoreDetailContent.classList.remove('scale-100', 'opacity-100');
+      scoreDetailContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        scoreDetailModal.classList.add('hidden');
+      }, 300);
+    }
+
+    // 关闭答题弹窗
+    function closeAnswerModal() {
+      // 停止计时器（如果用户在未提交时关闭）
+      stopTimer();
+      
+      modalContent.classList.remove('scale-100', 'opacity-100');
+      modalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        answerCardModal.classList.add('hidden');
+      }, 300);
+    }
+    
+    // 页面加载完成后初始化
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

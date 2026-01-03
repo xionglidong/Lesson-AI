@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教师管理入口 - 野渡无人喊你做题</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <script src="./js/localforage.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4F46E5',
+            secondary: '#10B981',
+            accent: '#F59E0B',
+            dark: '#1F2937',
+          },
+        },
+      }
+    }
+  </script>
+  <style>
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .option-input { resize: none; height: 60px; }
+    .login-container { max-width: 400px; }
+    .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-3px); } 40%, 60% { transform: translateX(3px); } }
+    .tab-active { border-bottom: 3px solid #4F46E5; color: #4F46E5; font-weight: 600; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+  <div id="loginScreen" class="fixed inset-0 bg-gray-100 flex items-center justify-center z-50 p-4">
+    <div class="login-container w-full bg-white rounded-xl shadow-lg p-8 fade-in">
+      <h2 class="text-2xl font-bold text-center text-gray-800 mb-6 flex items-center justify-center">
+        <i class="fa fa-lock text-purple-600 mr-3"></i> 管理员登录
+      </h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">管理员姓名 <span class="text-red-500">*</span></label>
+          <input type="text" id="adminName" placeholder="请输入管理员姓名" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">密码 <span class="text-red-500">*</span></label>
+          <input type="password" id="adminPassword" placeholder="请输入密码" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div class="text-red-500 text-sm hidden" id="loginError">用户名或密码错误，请重试</div>
+        <button id="loginBtn" class="w-full mt-4 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center text-base">
+          <i class="fa fa-sign-in mr-2"></i> 登录
+        </button>
+        <p class="text-center text-gray-500 text-sm mt-4">测试账号：admin | 密码：admin123</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainContent" class="max-w-7xl mx-auto hidden">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+        <i class="fa fa-cogs text-purple-600 mr-3"></i> 答题系统管理后台
+      </h1>
+      <button id="logoutBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center">
+        <i class="fa fa-sign-out mr-2"></i> 退出登录
+      </button>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+      <div class="flex space-x-6 border-b border-gray-200">
+        <button data-tab="paper" class="py-2 px-4 text-gray-600 hover:text-primary tab-active">
+          <i class="fa fa-pencil-square-o mr-1"></i> 题库 & 答题统计
+        </button>
+        <button data-tab="student" class="py-2 px-4 text-gray-600 hover:text-primary">
+          <i class="fa fa-users mr-1"></i> 学生 & 积分管理
+        </button>
+        <button data-tab="rank" class="py-2 px-4 text-gray-600 hover:text-primary">
+          <i class="fa fa-trophy mr-1"></i> 排行榜 & 兑换记录
+        </button>
+      </div>
+    </div>
+    
+    <div id="tabContent">
+      
+      <div id="paper" class="tab-pane fade-in">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
+            <i class="fa fa-plus-circle text-green-500 mr-2"></i> 添加新套卷
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="space-y-4">
+              <h3 class="text-lg font-medium text-gray-800">套卷信息</h3>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">所属年级 <span class="text-red-500">*</span></label>
+                <select id="paperGrade" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="grade1">高一</option>
+                  <option value="grade2">高二</option>
+                  <option value="grade3">高三</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">套卷名称 <span class="text-red-500">*</span></label>
+                <input type="text" id="paperName" placeholder="如：第一套海淀期末考试题" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">题目数量 <span class="text-red-500">*</span></label>
+                <input type="number" id="paperQuestionCount" min="1" max="50" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">单题分值 <span class="text-red-500">*</span></label>
+                <input type="number" id="paperQuestionPoints" min="1" max="20" value="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <h3 class="text-lg font-medium text-gray-800">正确答案（用于判分）</h3>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">第1题正确答案 <span class="text-red-500">*</span></label>
+                <select id="answer1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">第2题正确答案 <span class="text-red-500">*</span></label>
+                <select id="answer2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">第3题正确答案 <span class="text-red-500">*</span></label>
+                <select id="answer3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                </select>
+              </div>
+              <div id="dynamicAnswers"></div> </div>
+
+            <div class="space-y-4">
+              <h3 class="text-lg font-medium text-gray-800">选项模板</h3>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">选项A <span class="text-red-500">*</span></label>
+                <textarea id="optionA" placeholder="输入选项A内容" class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">选项B <span class="text-red-500">*</span></label>
+                <textarea id="optionB" placeholder="输入选项B内容" class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">选项C <span class="text-red-500">*</span></label>
+                <textarea id="optionC" placeholder="输入选项C内容" class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">选项D <span class="text-red-500">*</span></label>
+                <textarea id="optionD" placeholder="输入选项D内容" class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <button id="addPaperBtn" class="mt-6 px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center text-base">
+            <i class="fa fa-save mr-2"></i> 确认添加套卷
+          </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
+            <i class="fa fa-gift text-yellow-500 mr-2"></i> 奖品管理
+          </h2>
+          <div class="grid md:grid-cols-3 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">奖品名称 <span class="text-red-500">*</span></label>
+              <input type="text" id="prizeName" placeholder="如：学习资料包" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">所需积分 <span class="text-red-500">*</span></label>
+              <input type="number" id="prizePoints" min="100" value="500" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">奖品描述</label>
+              <input type="text" id="prizeDesc" placeholder="如：精选编程学习资料" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+          </div>
+          <button id="addPrizeBtn" class="mt-4 px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+            <i class="fa fa-plus mr-2"></i> 添加奖品
+          </button>
+          
+          <div class="mt-6">
+            <h3 class="text-lg font-medium mb-3">现有奖品</h3>
+            <div id="prizeList" class="grid md:grid-cols-3 gap-4">
+              </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
+            <i class="fa fa-exchange text-orange-500 mr-2"></i> 系统数据迁移（LocalForage 备份/恢复）
+          </h2>
+          <div class="flex flex-col md:flex-row gap-4 items-center">
+            <button id="exportAllDataBtn" class="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center">
+              <i class="fa fa-download mr-2"></i> 导出全部数据 (JSON)
+            </button>
+            
+            <div class="flex items-center space-x-3 w-full md:w-auto">
+              <input type="file" id="importFileInput" accept=".json" class="hidden">
+              <button id="selectImportFileBtn" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center">
+                <i class="fa fa-upload mr-2"></i> 导入/恢复数据
+              </button>
+              <span id="importFileName" class="text-sm text-gray-500 truncate max-w-[150px]">未选择文件</span>
+            </div>
+          </div>
+          <p class="text-xs text-red-500 mt-2">注意：导入数据将完全覆盖现有数据。请谨慎操作！</p>
+        </div>
+
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+              <i class="fa fa-book text-blue-500 mr-2"></i> 高一题库管理
+            </h3>
+            <div id="grade1AddBtn" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
+              <i class="fa fa-plus text-purple-500 text-2xl mb-2"></i>
+              <p class="text-gray-600">添加新套卷</p>
+            </div>
+            <div class="space-y-3 max-h-80 overflow-y-auto pr-2" id="grade1PaperList">
+              </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+              <i class="fa fa-book text-blue-500 mr-2"></i> 高二题库管理
+            </h3>
+            <div id="grade2AddBtn" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
+              <i class="fa fa-plus text-purple-500 text-2xl mb-2"></i>
+              <p class="text-gray-600">添加新套卷</p>
+            </div>
+            <div class="space-y-3 max-h-80 overflow-y-auto pr-2" id="grade2PaperList">
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+              <i class="fa fa-book text-blue-500 mr-2"></i> 高三题库管理
+            </h3>
+            <div id="grade3AddBtn" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
+              <i class="fa fa-plus text-purple-500 text-2xl mb-2"></i>
+              <p class="text-gray-600">添加新套卷</p>
+            </div>
+            <div class="space-y-3 max-h-80 overflow-y-auto pr-2" id="grade3PaperList">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="student" class="tab-pane hidden fade-in">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+          <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
+            <i class="fa fa-users text-primary mr-2"></i> 学生积分数据管理
+          </p>
+          <div class="flex justify-end mb-4">
+            <button id="exportStudentsBtn" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+              <i class="fa fa-download mr-2"></i> 导出学生数据 (Excel)
+            </button>
+          </div>
+          <div class="max-h-[60vh] overflow-y-auto pr-2">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50 sticky top-0">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学号</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">当前积分</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上次更新</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                </tr>
+              </thead>
+              <tbody id="studentList" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="rank" class="tab-pane hidden fade-in">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+            <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
+              <i class="fa fa-trophy text-accent mr-2"></i> 积分排行榜
+            </h2>
+            <div class="flex justify-end mb-4">
+              <button id="exportRankingBtn" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+                <i class="fa fa-download mr-2"></i> 导出排行榜 (Excel)
+              </button>
+            </div>
+            <div class="max-h-[50vh] overflow-y-auto pr-2">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">排名</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名 (学号)</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">积分</th>
+                  </tr>
+                </thead>
+                <tbody id="rankingTableBody" class="bg-white divide-y divide-gray-200">
+                  </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+            <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
+              <i class="fa fa-history text-primary mr-2"></i> 积分兑换记录
+            </h2>
+            <div class="flex justify-end mb-4">
+              <button id="exportExchangeBtn" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+                <i class="fa fa-download mr-2"></i> 导出兑换记录 (Excel)
+              </button>
+            </div>
+            <div class="max-h-[50vh] overflow-y-auto pr-2">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学生 (学号)</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">奖品</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">消耗积分</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                  </tr>
+                </thead>
+                <tbody id="exchangeHistoryTableBody" class="bg-white divide-y divide-gray-200">
+                  </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div id="answerDetailModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 transform transition-all scale-95 opacity-0" id="detailModalContent">
+      <div class="flex justify-between items-start mb-6">
+        <h3 class="text-xl font-bold text-gray-800" id="detailPaperTitle">第一套海淀期末考试题 - 答题详情</h3>
+        <button id="closeDetailModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      <div id="answerDetailContent" class="max-h-96 overflow-y-auto pr-2">
+        </div>
+    </div>
+  </div>
+  
+  <div id="editPointsModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl p-8 max-w-sm w-full mx-4 transform transition-all scale-95 opacity-0" id="editPointsModalContent">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">编辑积分</h3>
+      <p class="mb-4">正在编辑 <span id="editingStudentName" class="font-bold"></span> (学号: <span id="editingStudentId" class="font-bold"></span>) 的积分。</p>
+      
+      <label class="block text-gray-700 mb-2">新积分值</label>
+      <input type="number" id="newPointsInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary/50" min="0">
+      
+      <div class="flex justify-end space-x-3">
+        <button id="cancelEditPoints" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">取消</button>
+        <button id="saveEditPoints" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 存储键名
+    const PAPER_STORAGE_KEY = 'gradePapers'; // 套卷数据
+    const ANSWER_STORAGE_KEY = 'studentAnswers'; // 学生答题数据
+    const ADMIN_SESSION_KEY = 'adminLoggedIn'; // 管理员登录状态
+    const PRIZES_STORAGE_KEY = 'exchangePrizes'; // 奖品数据
+    const STUDENT_POINTS_KEY = 'studentPoints'; // 学生积分数据
+    const EXCHANGE_RECORDS_KEY = 'exchangeRecords'; // 兑换记录
+
+    // 管理员账户信息
+    const ADMIN_CREDENTIALS = {
+      username: 'admin',
+      password: 'admin123'
+    };
+    
+    // --- 数据存取工具函数 ---
+    
+    // 使用 LocalForage 异步获取数据
+    async function getData(key) {
+        // 由于 LocalForage 不支持直接存储布尔值，管理员登录状态仍然使用 localStorage
+        if (key === ADMIN_SESSION_KEY) {
+            return localStorage.getItem(key);
+        }
+        // 如果是导入导出操作需要获取全部键，则直接返回 LocalForage.getItem
+        return await localforage.getItem(key);
+    }
+
+    // 使用 LocalForage 异步保存数据
+    async function saveData(key, value) {
+        if (key === ADMIN_SESSION_KEY) {
+            localStorage.setItem(key, value);
+            return;
+        }
+        await localforage.setItem(key, value);
+    }
+
+    // 使用 LocalForage 异步移除数据
+    async function removeData(key) {
+        if (key === ADMIN_SESSION_KEY) {
+            localStorage.removeItem(key);
+            return;
+        }
+        await localforage.removeItem(key);
+    }
+
+
+    // DOM元素
+    const loginScreen = document.getElementById('loginScreen');
+    const mainContent = document.getElementById('mainContent');
+    const adminName = document.getElementById('adminName');
+    const adminPassword = document.getElementById('adminPassword');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    // Tab元素
+    const tabButtons = document.querySelectorAll('.bg-white.rounded-xl.shadow-md.p-4.mb-8 button');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    
+    // 题库管理元素
+    const paperGrade = document.getElementById('paperGrade');
+    const paperName = document.getElementById('paperName');
+    const paperQuestionCount = document.getElementById('paperQuestionCount');
+    const paperQuestionPoints = document.getElementById('paperQuestionPoints');
+    const optionA = document.getElementById('optionA');
+    const optionB = document.getElementById('optionB');
+    const optionC = document.getElementById('optionC');
+    const optionD = document.getElementById('optionD');
+    const dynamicAnswers = document.getElementById('dynamicAnswers');
+    const addPaperBtn = document.getElementById('addPaperBtn');
+    const grade1PaperList = document.getElementById('grade1PaperList');
+    const grade2PaperList = document.getElementById('grade2PaperList');
+    const grade3PaperList = document.getElementById('grade3PaperList');
+    const grade1AddBtn = document.getElementById('grade1AddBtn');
+    const grade2AddBtn = document.getElementById('grade2AddBtn');
+    const grade3AddBtn = document.getElementById('grade3AddBtn');
+
+    // 奖品管理元素
+    const prizeName = document.getElementById('prizeName');
+    const prizePoints = document.getElementById('prizePoints');
+    const prizeDesc = document.getElementById('prizeDesc');
+    const addPrizeBtn = document.getElementById('addPrizeBtn');
+    const prizeList = document.getElementById('prizeList');
+    
+    // *** 新增导入导出元素 ***
+    const exportAllDataBtn = document.getElementById('exportAllDataBtn');
+    const selectImportFileBtn = document.getElementById('selectImportFileBtn');
+    const importFileInput = document.getElementById('importFileInput');
+    const importFileName = document.getElementById('importFileName');
+    
+    // 答题详情弹窗元素
+    const answerDetailModal = document.getElementById('answerDetailModal');
+    const detailModalContent = document.getElementById('detailModalContent');
+    const detailPaperTitle = document.getElementById('detailPaperTitle');
+    const answerDetailContent = document.getElementById('answerDetailContent');
+    const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
+    let currentViewingPaperId = null; // 当前查看的套卷ID
+
+    // 学生/积分管理元素
+    const studentList = document.getElementById('studentList');
+    const exportStudentsBtn = document.getElementById('exportStudentsBtn');
+    const editPointsModal = document.getElementById('editPointsModal');
+    const editPointsModalContent = document.getElementById('editPointsModalContent');
+    const editingStudentName = document.getElementById('editingStudentName');
+    const editingStudentId = document.getElementById('editingStudentId');
+    const newPointsInput = document.getElementById('newPointsInput');
+    const cancelEditPoints = document.getElementById('cancelEditPoints');
+    const saveEditPoints = document.getElementById('saveEditPoints');
+    let currentEditingStudentId = null;
+
+    // 排行榜/兑换记录元素
+    const rankingTableBody = document.getElementById('rankingTableBody');
+    const exchangeHistoryTableBody = document.getElementById('exchangeHistoryTableBody');
+    const exportRankingBtn = document.getElementById('exportRankingBtn');
+    const exportExchangeBtn = document.getElementById('exportExchangeBtn');
+
+    // 初始化
+    async function init() {
+      // 检查登录状态
+      if (await getData(ADMIN_SESSION_KEY) === 'true') {
+        showMainContent();
+      } else {
+        // 绑定登录事件
+        loginBtn.addEventListener('click', handleLogin);
+        [adminName, adminPassword].forEach(el => {
+          el.addEventListener('keyup', e => e.key === 'Enter' && handleLogin());
+        });
+      }
+    }
+
+    // 处理登录
+    async function handleLogin() {
+      const name = adminName.value.trim();
+      const password = adminPassword.value.trim();
+      
+      loginError.classList.add('hidden');
+      
+      if (!name || !password) {
+        showLoginError('请输入完整的用户名和密码');
+        return;
+      }
+      
+      if (name === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+        await saveData(ADMIN_SESSION_KEY, 'true');
+        showMainContent();
+      } else {
+        showLoginError('用户名或密码错误，请重试（测试账号：admin/admin123）');
+        adminPassword.value = '';
+      }
+    }
+
+    // 显示登录错误
+    function showLoginError(message) {
+      loginError.textContent = message;
+      loginError.classList.remove('hidden');
+      loginScreen.querySelector('.login-container').classList.add('shake');
+      setTimeout(() => {
+        loginScreen.querySelector('.login-container').classList.remove('shake');
+      }, 500);
+    }
+
+    // 显示主内容区
+    function showMainContent() {
+      loginScreen.classList.add('hidden');
+      mainContent.classList.remove('hidden');
+      initSystem();
+    }
+
+    // 处理退出登录
+    async function handleLogout() {
+      if (confirm('确定要退出登录吗？')) {
+        await removeData(ADMIN_SESSION_KEY);
+        window.location.reload();
+      }
+    }
+
+    // 切换 Tab
+    function switchTab(targetTabId) {
+      tabPanes.forEach(pane => {
+        pane.classList.add('hidden');
+      });
+      tabButtons.forEach(btn => {
+        btn.classList.remove('tab-active');
+      });
+
+      document.getElementById(targetTabId).classList.remove('hidden');
+      document.querySelector(`[data-tab="${targetTabId}"]`).classList.add('tab-active');
+      
+      // 每次切换Tab时刷新对应数据
+      if (targetTabId === 'student') {
+        loadStudentPointsList();
+      } else if (targetTabId === 'rank') {
+        loadRankingData();
+        loadExchangeHistoryData();
+      }
+    }
+
+    // 初始化系统功能
+    function initSystem() {
+      initStorageData();
+      generateAnswerSelects();
+      paperQuestionCount.addEventListener('input', generateAnswerSelects);
+      renderAllPaperLists();
+      grade1AddBtn.addEventListener('click', () => { paperGrade.value = 'grade1'; scrollToForm(); });
+      grade2AddBtn.addEventListener('click', () => { paperGrade.value = 'grade2'; scrollToForm(); });
+      grade3AddBtn.addEventListener('click', () => { paperGrade.value = 'grade3'; scrollToForm(); });
+      addPaperBtn.addEventListener('click', addNewPaper);
+      closeDetailModalBtn.addEventListener('click', closeDetailModal);
+      answerDetailModal.addEventListener('click', e => e.target === answerDetailModal && closeDetailModal());
+      logoutBtn.addEventListener('click', handleLogout);
+
+      // 绑定 Tab 切换事件
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+      
+      // 初始化奖品管理
+      initPrizeManagement();
+      
+      // 初始化学生/积分管理
+      initStudentManagement();
+      
+      // 初始化排行榜/兑换记录管理
+      initRankingManagement();
+
+      // *** 新增：数据导入导出事件绑定 ***
+      exportAllDataBtn.addEventListener('click', exportAllData);
+      selectImportFileBtn.addEventListener('click', () => importFileInput.click());
+      importFileInput.addEventListener('change', importAllData);
+      
+      // 移除原有的 localStorage 监听器，因为 LocalForage 不会触发 'storage' 事件
+      // 跨标签页同步依赖于用户在切换Tab时手动刷新数据，或者复杂的IndexedDB监听API，此处保持原逻辑
+    }
+    
+    // *** 新增：导出全部数据的函数 ***
+    async function exportAllData() {
+      if (!confirm('确定要导出所有系统数据吗？这将备份套卷、积分、答题记录等全部数据。')) {
+        return;
+      }
+
+      try {
+        const keys = [PAPER_STORAGE_KEY, ANSWER_STORAGE_KEY, PRIZES_STORAGE_KEY, STUDENT_POINTS_KEY, EXCHANGE_RECORDS_KEY];
+        const allData = {};
+        
+        for (const key of keys) {
+          allData[key] = await getData(key);
+        }
+
+        const dataStr = JSON.stringify(allData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        a.href = url;
+        a.download = `quiz_system_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('数据导出成功！请妥善保管下载的 JSON 文件。');
+      } catch (error) {
+        console.error('导出数据失败:', error);
+        alert('导出数据失败。请检查控制台错误。');
+      }
+    }
+
+    // *** 新增：导入全部数据的函数 ***
+    async function importAllData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      importFileName.textContent = file.name;
+
+      if (!confirm(`确定要导入文件 "${file.name}" 吗？这将会**覆盖**当前系统中的所有套卷、积分和记录数据！`)) {
+        importFileInput.value = ''; // 清空文件选择
+        importFileName.textContent = '未选择文件';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          const keys = [PAPER_STORAGE_KEY, ANSWER_STORAGE_KEY, PRIZES_STORAGE_KEY, STUDENT_POINTS_KEY, EXCHANGE_RECORDS_KEY];
+          let importCount = 0;
+          
+          for (const key of keys) {
+            if (importedData.hasOwnProperty(key)) {
+              await saveData(key, importedData[key]);
+              importCount++;
+            }
+          }
+
+          alert(`数据导入成功！共导入/覆盖了 ${importCount} 个数据集合。页面即将刷新。`);
+          window.location.reload();
+          
+        } catch (error) {
+          console.error('导入文件解析失败:', error);
+          alert('导入数据失败。文件格式不正确或内容被篡改。');
+        } finally {
+          importFileInput.value = ''; 
+          importFileName.textContent = '未选择文件';
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    // 初始化存储数据
+    async function initStorageData() {
+      // 题库默认数据
+      if (!await getData(PAPER_STORAGE_KEY)) {
+        const defaultPapers = [
+          {
+            id: 'p1',
+            grade: 'grade1',
+            name: '第一套海淀期末考试题',
+            questionCount: 3,
+            singlePoints: 2,
+            totalPoints: 6,
+            answers: ['A', 'B', 'C'],
+            options: { A: '选项A', B: '选项B', C: '选项C', D: '选项D' },
+            createTime: new Date().toLocaleString()
+          },
+          {
+            id: 'p2',
+            grade: 'grade1',
+            name: '第二套西城期末考试题',
+            questionCount: 2,
+            singlePoints: 3,
+            totalPoints: 6,
+            answers: ['B', 'D'],
+            options: { A: '选项A', B: '选项B', C: '选项C', D: '选项D' },
+            createTime: new Date().toLocaleString()
+          }
+        ];
+        await saveData(PAPER_STORAGE_KEY, defaultPapers);
+      }
+      // 答题记录默认数据
+      if (!await getData(ANSWER_STORAGE_KEY)) {
+        await saveData(ANSWER_STORAGE_KEY, []);
+      }
+      // 奖品默认数据
+      if (!await getData(PRIZES_STORAGE_KEY)) {
+        const defaultPrizes = [
+          {
+            id: 'p1',
+            name: '学习资料包',
+            points: 500,
+            description: '精选编程学习资料',
+            icon: 'fa-book',
+            iconColor: 'text-primary',
+            bgColor: 'bg-blue-100'
+          }
+        ];
+        await saveData(PRIZES_STORAGE_KEY, defaultPrizes);
+      }
+      // 积分数据默认
+      if (!await getData(STUDENT_POINTS_KEY)) {
+        await saveData(STUDENT_POINTS_KEY, {});
+      }
+       // 兑换记录默认
+      if (!await getData(EXCHANGE_RECORDS_KEY)) {
+        await saveData(EXCHANGE_RECORDS_KEY, []);
+      }
+    }
+
+    // 动态生成答案选择框
+    function generateAnswerSelects() {
+      const count = parseInt(paperQuestionCount.value) || 1;
+      // 清空从第4题开始的答案
+      dynamicAnswers.innerHTML = '';
+      
+      for (let i = 4; i <= count; i++) {
+        const answerDiv = document.createElement('div');
+        answerDiv.innerHTML = `
+          <label class="block text-sm font-medium text-gray-600 mb-1">第${i}题正确答案 <span class="text-red-500">*</span></label>
+          <select id="answer${i}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        `;
+        dynamicAnswers.appendChild(answerDiv);
+      }
+    }
+
+    // 滚动到套卷表单顶部
+    function scrollToForm() {
+      document.querySelector('#paper .bg-white.rounded-xl.shadow-md.p-6.mb-8.fade-in').scrollIntoView({
+        behavior: 'smooth'
+      });
+      // 聚焦到套卷名称输入框
+      setTimeout(() => paperName.focus(), 500);
+    }
+
+    // 添加新套卷
+    async function addNewPaper() {
+      const grade = paperGrade.value;
+      const name = paperName.value.trim();
+      const questionCount = parseInt(paperQuestionCount.value);
+      const singlePoints = parseInt(paperQuestionPoints.value);
+      const optionAVal = optionA.value.trim();
+      const optionBVal = optionB.value.trim();
+      const optionCVal = optionC.value.trim();
+      const optionDVal = optionD.value.trim();
+      
+      // 验证必填项
+      if (!name || !questionCount || !singlePoints) {
+        alert('请填写套卷名称、题目数量和单题分值');
+        return;
+      }
+      
+      if (!optionAVal || !optionBVal || !optionCVal || !optionDVal) {
+        alert('请填写所有选项内容');
+        return;
+      }
+      
+      // 收集答案
+      const answers = [];
+      for (let i = 1; i <= questionCount; i++) {
+        const answerElement = document.getElementById(`answer${i}`);
+        const answer = answerElement?.value;
+        if (!answer) {
+          alert(`请设置第${i}题的正确答案`);
+          return;
+        }
+        answers.push(answer);
+      }
+      
+      // 创建新套卷
+      const newPaper = {
+        id: 'p' + Date.now(),
+        grade,
+        name,
+        questionCount,
+        singlePoints,
+        totalPoints: questionCount * singlePoints,
+        answers,
+        options: {
+          A: optionAVal,
+          B: optionBVal,
+          C: optionCVal,
+          D: optionDVal
+        },
+        createTime: new Date().toLocaleString()
+      };
+      
+      // 保存到 LocalForage
+      const papers = await getData(PAPER_STORAGE_KEY) || [];
+      papers.push(newPaper);
+      await saveData(PAPER_STORAGE_KEY, papers);
+      
+      // 刷新套卷列表
+      renderAllPaperLists();
+      
+      // 重置表单
+      paperName.value = '';
+      paperQuestionCount.value = '5';
+      paperQuestionPoints.value = '2';
+      generateAnswerSelects(); // 刷新答案选择框
+      document.getElementById('answer1').value = 'A';
+      document.getElementById('answer2').value = 'A';
+      document.getElementById('answer3').value = 'A';
+      optionA.value = '';
+      optionB.value = '';
+      optionC.value = '';
+      optionD.value = '';
+      
+      alert('套卷添加成功，已同步到学生端！');
+    }
+
+    // 渲染所有年级的套卷列表
+    async function renderAllPaperLists() {
+      const papers = await getData(PAPER_STORAGE_KEY) || [];
+      
+      // 按年级过滤
+      const grade1Papers = papers.filter(p => p.grade === 'grade1');
+      const grade2Papers = papers.filter(p => p.grade === 'grade2');
+      const grade3Papers = papers.filter(p => p.grade === 'grade3');
+      
+      // 渲染各年级套卷
+      renderPaperList(grade1PaperList, grade1Papers);
+      renderPaperList(grade2PaperList, grade2Papers);
+      renderPaperList(grade3PaperList, grade3Papers);
+    }
+
+    // 渲染单个年级的套卷列表
+    async function renderPaperList(container, papers) {
+      container.innerHTML = '';
+      
+      if (papers.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-4">暂无套卷</div>';
+        return;
+      }
+      
+      // 异步获取答题数据
+      const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+
+      papers.forEach(paper => {
+        // 获取该套卷的答题记录数量
+        const paperAnswers = allAnswers.filter(a => a.paperId === paper.id);
+        const answerCount = paperAnswers.length;
+        
+        // 计算平均分
+        const totalScores = paperAnswers.reduce((sum, item) => sum + item.score, 0);
+        const avgScore = answerCount > 0 ? (totalScores / answerCount).toFixed(1) : 'N/A';
+        
+        const paperItem = document.createElement('div');
+        paperItem.className = 'border rounded-lg p-3 bg-white hover:shadow-md transition-shadow';
+        paperItem.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-medium text-gray-800">${paper.name}</h4>
+              <p class="text-sm text-gray-500 mt-1">
+                ${paper.questionCount}题 · 总分${paper.totalPoints}分
+              </p>
+              <p class="text-xs text-blue-500 mt-1">
+                平均分: ${avgScore} | 发布于 ${paper.createTime || '未知时间'}
+              </p>
+            </div>
+            <div class="flex space-x-2 items-center">
+              <button class="text-blue-500 view-answers text-sm whitespace-nowrap" data-id="${paper.id}">
+                <i class="fa fa-bar-chart mr-1"></i> ${answerCount}人作答
+              </button>
+              <button class="text-red-500 delete-paper text-sm" data-id="${paper.id}">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(paperItem);
+        
+        // 绑定查看答题详情事件
+        paperItem.querySelector('.view-answers').addEventListener('click', function() {
+          const paperId = this.dataset.id;
+          showAnswerDetails(paperId);
+        });
+        
+        // 绑定删除套卷事件
+        paperItem.querySelector('.delete-paper').addEventListener('click', function() {
+          const paperId = this.dataset.id;
+          if (confirm(`确定要删除套卷"${paper.name}"吗？相关答题数据也将被删除。`)) {
+            deletePaper(paperId);
+          }
+        });
+      });
+    }
+
+    // 删除套卷
+    async function deletePaper(paperId) {
+      // 删除套卷数据
+      let papers = await getData(PAPER_STORAGE_KEY) || [];
+      papers = papers.filter(p => p.id !== paperId);
+      await saveData(PAPER_STORAGE_KEY, papers);
+      
+      // 删除相关答题数据
+      let answers = await getData(ANSWER_STORAGE_KEY) || [];
+      answers = answers.filter(a => a.paperId !== paperId);
+      await saveData(ANSWER_STORAGE_KEY, answers);
+      
+      // 刷新套卷列表
+      renderAllPaperLists();
+    }
+
+    // 显示答题详情
+    async function showAnswerDetails(paperId) {
+      currentViewingPaperId = paperId;
+      const papers = await getData(PAPER_STORAGE_KEY) || [];
+      const paper = papers.find(p => p.id === paperId);
+      const answers = await getData(ANSWER_STORAGE_KEY) || [];
+      const paperAnswers = answers.filter(a => a.paperId === paperId);
+      
+      if (!paper) return;
+      
+      // 更新弹窗标题
+      detailPaperTitle.textContent = `${paper.name} - 答题详情 (共${paperAnswers.length}人参与)`;
+      
+      // 生成详情内容
+      let content = '';
+      
+      if (paperAnswers.length === 0) {
+        content = '<div class="text-center text-gray-500 py-6">暂无答题记录</div>';
+      } else {
+        // 计算平均分
+        const totalScores = paperAnswers.reduce((sum, item) => sum + item.score, 0);
+        const avgScore = (totalScores / paperAnswers.length).toFixed(1);
+        
+        content = `
+          <div class="bg-blue-50 p-4 rounded-lg mb-6">
+            <div class="flex justify-between">
+              <p><strong>参与人数：</strong>${paperAnswers.length}人</p>
+              <p><strong>平均分：</strong>${avgScore}/${paper.totalPoints}分</p>
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+        `;
+        
+        // 生成每个学生的答题记录
+        paperAnswers.forEach((answer, index) => {
+          // 格式化耗时
+          const timeElapsed = answer.timeElapsed || 0;
+          const minutes = String(Math.floor(timeElapsed / 60)).padStart(2, '0');
+          const seconds = String(timeElapsed % 60).padStart(2, '0');
+          const timeDisplay = `${minutes}:${seconds}`;
+
+          content += `
+            <div class="border rounded-lg p-4">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <p class="font-medium">${answer.studentName} (学号: ${answer.studentId})</p>
+                  <p class="text-sm text-gray-500">提交于 ${answer.submitTime}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xl font-bold ${answer.score === paper.totalPoints ? 'text-green-500' : 'text-purple-500'}">
+                        ${answer.score}/${paper.totalPoints}分
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">耗时: ${timeDisplay}</p>
+                </div>
+              </div>
+              
+              <div class="space-y-2 mt-2 text-sm">
+                ${answer.answers.map((ans, i) => {
+                  const isCorrect = ans === paper.answers[i];
+                  return `
+                    <div class="flex items-center ${isCorrect ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'} p-2 rounded">
+                      <span class="w-16">第${i+1}题：</span>
+                      <span>你的答案：${ans}</span>
+                      <span class="mx-2">|</span>
+                      <span>正确答案：${paper.answers[i]}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        });
+        
+        content += `</div>`;
+      }
+      
+      // 更新弹窗内容
+      answerDetailContent.innerHTML = content;
+      
+      // 显示弹窗
+      answerDetailModal.classList.remove('hidden');
+      setTimeout(() => {
+        detailModalContent.classList.remove('scale-95', 'opacity-0');
+        detailModalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    // 关闭详情弹窗
+    function closeDetailModal() {
+      detailModalContent.classList.remove('scale-100', 'opacity-100');
+      detailModalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        answerDetailModal.classList.add('hidden');
+        currentViewingPaperId = null;
+      }, 300);
+    }
+
+    // --- 奖品管理功能 ---
+    function initPrizeManagement() {
+      addPrizeBtn.addEventListener('click', addNewPrize);
+      loadPrizes();
+    }
+
+    // 加载奖品列表
+    async function loadPrizes() {
+      const prizes = await getData(PRIZES_STORAGE_KEY) || [];
+      prizeList.innerHTML = '';
+      
+      if (prizes.length === 0) {
+        prizeList.innerHTML = '<div class="col-span-3 text-center text-gray-500 py-4">暂无奖品，请添加</div>';
+        return;
+      }
+      
+      prizes.forEach(prize => {
+        const prizeCard = document.createElement('div');
+        prizeCard.className = 'border rounded-lg p-4';
+        prizeCard.innerHTML = `
+          <h4 class="font-medium">${prize.name}</h4>
+          <p class="text-sm text-gray-500">${prize.description}</p>
+          <p class="text-yellow-600 font-bold mt-1">${prize.points}分</p>
+          <div class="mt-2 flex justify-end">
+            <button class="text-red-500 text-sm delete-prize" data-id="${prize.id}">
+              <i class="fa fa-trash mr-1"></i> 删除
+            </button>
+          </div>
+        `;
+        prizeList.appendChild(prizeCard);
+        
+        // 绑定删除事件
+        prizeCard.querySelector('.delete-prize').addEventListener('click', function() {
+          const prizeId = this.dataset.id;
+          if (confirm(`确定要删除${prize.name}吗？`)) {
+            deletePrize(prizeId);
+          }
+        });
+      });
+    }
+
+    // 添加新奖品
+    async function addNewPrize() {
+      const name = prizeName.value.trim();
+      const points = parseInt(prizePoints.value);
+      const desc = prizeDesc.value.trim();
+      
+      if (!name || !points) {
+        alert('请填写奖品名称和所需积分');
+        return;
+      }
+      
+      const prizes = await getData(PRIZES_STORAGE_KEY) || [];
+      const newPrize = {
+        id: 'prize_' + Date.now(),
+        name,
+        points,
+        description: desc,
+        icon: 'fa-gift',
+        iconColor: 'text-primary',
+        bgColor: 'bg-blue-100'
+      };
+      
+      prizes.push(newPrize);
+      await saveData(PRIZES_STORAGE_KEY, prizes);
+      
+      // 清空表单
+      prizeName.value = '';
+      prizePoints.value = '500';
+      prizeDesc.value = '';
+      
+      loadPrizes();
+      alert('奖品添加成功，学生端已同步更新');
+    }
+
+    // 删除奖品
+    async function deletePrize(prizeId) {
+      let prizes = await getData(PRIZES_STORAGE_KEY) || [];
+      prizes = prizes.filter(p => p.id !== prizeId);
+      await saveData(PRIZES_STORAGE_KEY, prizes);
+      loadPrizes();
+    }
+    
+    // --- 学生/积分管理功能 ---
+    function initStudentManagement() {
+      loadStudentPointsList();
+      exportStudentsBtn.addEventListener('click', exportStudentData);
+      cancelEditPoints.addEventListener('click', closeEditPointsModal);
+      saveEditPoints.addEventListener('click', saveStudentPoints);
+    }
+    
+    // 加载学生积分列表
+    async function loadStudentPointsList() {
+      const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
+      const studentsArray = Object.values(studentPoints);
+      
+      studentList.innerHTML = '';
+      
+      if (studentsArray.length === 0) {
+        studentList.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+              暂无学生答题积分数据
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      studentsArray.forEach(student => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${student.name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.id}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">${student.points}分</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.lastUpdate || '未知'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <button class="text-indigo-600 hover:text-indigo-900 edit-points-btn" data-id="${student.id}" data-name="${student.name}" data-points="${student.points}">
+              <i class="fa fa-edit mr-1"></i> 编辑积分
+            </button>
+          </td>
+        `;
+        studentList.appendChild(row);
+      });
+      
+      // 绑定编辑积分事件
+      document.querySelectorAll('.edit-points-btn').forEach(btn => {
+        btn.addEventListener('click', openEditPointsModal);
+      });
+    }
+    
+    // 打开积分编辑弹窗
+    function openEditPointsModal() {
+      currentEditingStudentId = this.dataset.id;
+      const studentName = this.dataset.name;
+      const currentPoints = this.dataset.points;
+      
+      editingStudentName.textContent = studentName;
+      editingStudentId.textContent = this.dataset.id;
+      newPointsInput.value = currentPoints;
+      
+      editPointsModal.classList.remove('hidden');
+      setTimeout(() => {
+        editPointsModalContent.classList.remove('scale-95', 'opacity-0');
+        editPointsModalContent.classList.add('scale-100', 'opacity-100');
+        newPointsInput.focus();
+      }, 10);
+    }
+    
+    // 关闭积分编辑弹窗
+    function closeEditPointsModal() {
+      editPointsModalContent.classList.remove('scale-100', 'opacity-100');
+      editPointsModalContent.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        editPointsModal.classList.add('hidden');
+        currentEditingStudentId = null;
+      }, 300);
+    }
+    
+    // 保存修改后的积分
+    async function saveStudentPoints() {
+      if (!currentEditingStudentId) return;
+      
+      const newPoints = parseInt(newPointsInput.value);
+      if (isNaN(newPoints) || newPoints < 0) {
+        alert('请输入有效的积分值');
+        return;
+      }
+      
+      const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
+      
+      if (studentPoints[currentEditingStudentId]) {
+        studentPoints[currentEditingStudentId].points = newPoints;
+        studentPoints[currentEditingStudentId].lastUpdate = new Date().toLocaleString() + ' (Admin Edit)';
+        await saveData(STUDENT_POINTS_KEY, studentPoints);
+        
+        loadStudentPointsList(); // 刷新列表
+        closeEditPointsModal();
+        alert(`学生 ${studentPoints[currentEditingStudentId].name} 的积分已更新为 ${newPoints} 分`);
+      } else {
+        alert('未找到该学生数据');
+      }
+    }
+    
+    // 导出学生数据
+    async function exportStudentData() {
+      const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
+      const studentsArray = Object.values(studentPoints);
+
+      if (studentsArray.length === 0) {
+        alert('无学生数据可导出');
+        return;
+      }
+
+      const data = studentsArray.map(s => ({
+        姓名: s.name,
+        学号: s.id,
+        当前积分: s.points,
+        上次更新时间: s.lastUpdate
+      }));
+      
+      exportToExcel(data, '学生积分数据');
+    }
+    
+    // --- 排行榜/兑换记录功能 ---
+    function initRankingManagement() {
+      loadRankingData();
+      loadExchangeHistoryData();
+      exportRankingBtn.addEventListener('click', exportRankingData);
+      exportExchangeBtn.addEventListener('click', exportExchangeData);
+    }
+
+    // 加载排行榜数据
+    async function loadRankingData() {
+      const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
+      let studentsArray = Object.values(studentPoints);
+      studentsArray.sort((a, b) => b.points - a.points); // 降序排序
+      
+      rankingTableBody.innerHTML = '';
+      
+      if (studentsArray.length === 0) {
+        rankingTableBody.innerHTML = `
+          <tr>
+            <td colspan="3" class="px-6 py-4 text-center text-gray-500">暂无排行榜数据</td>
+          </tr>
+        `;
+        return;
+      }
+      
+      studentsArray.forEach((student, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${index + 1}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.name} (${student.id})</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-accent">${student.points}分</td>
+        `;
+        rankingTableBody.appendChild(row);
+      });
+    }
+
+    // 加载兑换记录数据
+    async function loadExchangeHistoryData() {
+      const exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
+      exchangeHistoryTableBody.innerHTML = '';
+      
+      if (exchangeRecords.length === 0) {
+        exchangeHistoryTableBody.innerHTML = `
+          <tr>
+            <td colspan="4" class="px-6 py-4 text-center text-gray-500">暂无兑换记录</td>
+          </tr>
+        `;
+        return;
+      }
+      
+      exchangeRecords.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.studentName} (${record.studentId})</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.prizeName}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">-${record.points}分</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.time}</td>
+        `;
+        exchangeHistoryTableBody.appendChild(row);
+      });
+    }
+
+    // 导出排行榜数据
+    async function exportRankingData() {
+      const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
+      let studentsArray = Object.values(studentPoints);
+      studentsArray.sort((a, b) => b.points - a.points);
+      
+      if (studentsArray.length === 0) {
+        alert('无排行榜数据可导出');
+        return;
+      }
+
+      const data = studentsArray.map((s, index) => ({
+        排名: index + 1,
+        姓名: s.name,
+        学号: s.id,
+        当前积分: s.points
+      }));
+      
+      exportToExcel(data, '积分排行榜');
+    }
+
+    // 导出兑换记录
+    async function exportExchangeData() {
+      const exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
+      
+      if (exchangeRecords.length === 0) {
+        alert('无兑换记录可导出');
+        return;
+      }
+
+      const data = exchangeRecords.map(r => ({
+        学生姓名: r.studentName,
+        学生学号: r.studentId,
+        兑换奖品: r.prizeName,
+        消耗积分: r.points,
+        兑换时间: r.time
+      }));
+      
+      exportToExcel(data, '积分兑换记录');
+    }
+
+    // 通用 Excel 导出函数
+    function exportToExcel(data, fileName) {
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, fileName);
+      XLSX.writeFile(wb, `${fileName}_${new Date().toLocaleDateString()}.xlsx`);
+    }
+
+    // 页面加载完成后初始化
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
