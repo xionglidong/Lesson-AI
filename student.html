@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>学生答题题系统 - 野渡无人喊你做题题</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  
+
   <script src="./js/localforage.min.js"></script>
-  
+
   <script>
     tailwind.config = {
       theme: {
@@ -27,19 +28,72 @@
       }
     }
   </script>
-  
+
   <style>
-    .fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .answer-card { background-color: #f8fafc; border-radius: 12px; }
-    .option-item { transition: all 0.2s ease; }
-    .option-item:hover { background-color: #e2e8f0; transform: translateX(4px); }
-    .question-item { transition: all 0.2s ease; }
-    .question-item:hover { transform: translateY(-2px); }
-    .animate-fadeIn { animation: fadeIn 0.5s ease forwards; }
-    .badge-new { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 999px; }
-    .result-correct { background-color: #e6ffed; color: #10b981; border-left: 3px solid #10b981; }
-    .result-incorrect { background-color: #fee2e2; color: #ef4444; border-left: 3px solid #ef4444; }
+    .fade-in {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .answer-card {
+      background-color: #f8fafc;
+      border-radius: 12px;
+    }
+
+    .option-item {
+      transition: all 0.2s ease;
+    }
+
+    .option-item:hover {
+      background-color: #e2e8f0;
+      transform: translateX(4px);
+    }
+
+    .question-item {
+      transition: all 0.2s ease;
+    }
+
+    .question-item:hover {
+      transform: translateY(-2px);
+    }
+
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease forwards;
+    }
+
+    .badge-new {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #ef4444;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    .result-correct {
+      background-color: #e6ffed;
+      color: #10b981;
+      border-left: 3px solid #10b981;
+    }
+
+    .result-incorrect {
+      background-color: #fee2e2;
+      color: #ef4444;
+      border-left: 3px solid #ef4444;
+    }
   </style>
 </head>
 
@@ -50,17 +104,17 @@
         <i class="fa fa-pencil-square-o text-primary text-2xl"></i>
         <h1 class="text-xl font-bold text-primary">野渡无人喊你做题</h1>
       </div>
-      
+
       <nav class="hidden md:flex items-center space-x-6">
         <a href="index.html" class="text-gray-600 hover:text-primary">首页</a>
         <a href="student.html" class="text-primary font-medium">学生入口</a>
       </nav>
-      
+
       <button class="md:hidden p-2" id="mobile-menu-btn">
         <i class="fa fa-bars text-gray-600"></i>
       </button>
     </div>
-    
+
     <div id="mobile-menu" class="hidden bg-white border-t md:hidden">
       <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
         <a href="index.html" class="py-2 text-gray-600">首页</a>
@@ -74,34 +128,35 @@
       <h2 class="text-3xl font-bold mb-4">学生答题入口</h2>
       <p class="text-gray-600">请填写个人信息并查看积分相关信息</p>
     </div>
-    
+
     <div class="bg-white rounded-xl shadow-md p-6 mb-8">
       <div class="grid md:grid-cols-3 gap-4 items-end">
         <div>
           <label class="block text-gray-700 mb-2">姓名</label>
-          <input type="text" id="student-name" 
-                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" 
-                 placeholder="请输入姓名">
+          <input type="text" id="student-name"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="请输入姓名">
         </div>
         <div>
           <label class="block text-gray-700 mb-2">学号</label>
-          <input type="text" id="student-id" 
-                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" 
-                 placeholder="请输入学号">
+          <input type="text" id="student-id"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="请输入学号">
         </div>
         <div>
-          <button id="login-btn" class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-all w-full">
+          <button id="login-btn"
+            class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-all w-full">
             登录 <i class="fa fa-sign-in ml-1"></i>
           </button>
         </div>
       </div>
     </div>
-    
+
     <div id="user-points-card" class="bg-white rounded-xl shadow-md p-6 mb-8 hidden">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-xl font-bold flex items-center">
-            <i class="fa fa-user-circle text-primary mr-2"></i> 
+            <i class="fa fa-user-circle text-primary mr-2"></i>
             <span id="user-name-display">张三</span>
             <span class="text-sm text-gray-500 ml-2" id="user-id-display">学号: 2023001</span>
           </h3>
@@ -121,7 +176,7 @@
         </div>
       </div>
     </div>
-    
+
     <div id="exam-container" class="hidden">
       <div id="grade1" class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
         <h3 class="text-xl font-bold mb-4 flex items-center">
@@ -153,15 +208,15 @@
         </div>
       </div>
     </div>
-    
+
     <div class="bg-white rounded-xl shadow-md p-6 mb-8">
       <h3 class="text-xl font-bold mb-4 flex items-center">
         <i class="fa fa-trophy text-accent mr-2"></i> 积分排行榜
       </h3>
       <div class="grid md:grid-cols-2 gap-3" id="ranking-list">
-        </div>
+      </div>
     </div>
-    
+
     <div class="bg-white rounded-xl shadow-md p-6 mb-8">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-xl font-bold flex items-center">
@@ -171,10 +226,10 @@
           <i class="fa fa-edit mr-1"></i> 编辑奖品
         </button>
       </div>
-      
+
       <div class="grid md:grid-cols-3 gap-4" id="prizes-container">
-        </div>
-      
+      </div>
+
       <div id="prize-edit-form" class="mt-6 hidden">
         <h4 class="font-bold mb-3">编辑奖品</h4>
         <div class="grid md:grid-cols-3 gap-4">
@@ -197,108 +252,133 @@
         </div>
       </div>
     </div>
-    
+
     <div id="exchange-history" class="bg-white rounded-xl shadow-md p-6 mb-8 hidden">
       <h3 class="text-xl font-bold mb-4 flex items-center">
         <i class="fa fa-history text-primary mr-2"></i> 兑换记录
       </h3>
       <div id="history-list" class="space-y-3">
-        </div>
+      </div>
     </div>
-    
-    <div id="answerCardModal" class="fixed inset-0 bg-black/60 flex items items-center items-center justify-center hidden z-50 backdrop-blur-sm">
-      <div class="bg-white rounded-xl p-8 max-w-lg w-full mx-4 transform transition-all scale-95 opacity-0" id="modalContent">
+
+    <div id="answerCardModal"
+      class="fixed inset-0 bg-black/60 flex items items-center items-center justify-center hidden z-50 backdrop-blur-sm">
+      <div style="height: 800px;overflow: scroll;padding: 20px;"
+        class="bg-white rounded-xl p-8 max-w-lg w-full mx-4 transform transition-all scale-95 opacity-0"
+        id="modalContent">
         <div class="flex justify-between items-start mb-6">
           <h3 class="text-xl font-bold text-gray-800" id="modalPaperTitle">第一一套一套海淀期末考试题</h3>
           <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
             <i class="fa fa-times text-xl"></i>
           </button>
         </div>
-        
-        <div class="mb-6 space-y-3">
-            <div class="flex justify-between items-center text-sm font-medium">
-                <span class="flex items-center text-primary">
-                    <i class="fa fa-clock-o mr-2"></i> 耗时: <span id="timerDisplay">00:00</span>
-                </span>
-                <span id="progressText" class="text-gray-600">0 / 0 题</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-                <div id="progressBar" class="bg-secondary h-2 rounded-full" style="width: 0%"></div>
-            </div>
-        </div>
-        
-        <div class="mb-6 flex items-center">
-          <span id="modalPaperInfo" class="bg-blue-100 text-blue-500 px-4 py-2 rounded-full text-sm font-medium">共3题 · 每题2分 · 总分6分</span>
-        </div>
-        
-        <div class="flex flex-wrap gap-2 mb-6" id="questionNav">
-          </div>
 
-        <div class="answer-card p-6 mb-8 border border-gray-200" id="questionContent">
+        <div class="mb-6 space-y-3">
+          <div class="flex justify-between items-center text-sm font-medium">
+            <span class="flex items-center text-primary">
+              <i class="fa fa-clock-o mr-2"></i> 耗时: <span id="timerDisplay">00:00</span>
+            </span>
+            <span id="progressText" class="text-gray-600">0 / 0 题</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div id="progressBar" class="bg-secondary h-2 rounded-full" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="mb-6 flex items-center">
+          <span id="modalPaperInfo" class="bg-blue-100 text-blue-500 px-4 py-2 rounded-full text-sm font-medium">共3题 ·
+            每题2分 · 总分6分</span>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mb-6" id="questionNav">
+        </div>
+
+        <div class="answer-card p-6 mb-4 border border-gray-200" id="questionContent">
           <div class="text-center text-gray-500 py-6">请选择左侧题目开始作答</div>
         </div>
-        
-        <div class="flex justify-between">
-          <button id="prevQuestionBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+
+        <div class="flex justify-evenly">
+          <button id="prevQuestionBtn"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled>
             上一题
           </button>
-          <button id="nextQuestionBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          <button id="nextQuestionBtn"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled>
             下一题
           </button>
-          <button id="submitAllBtn" class="px-8 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-            提交所有答案
+        </div>
+
+        <!-- 填空题区域 -->
+        <div id="fillBlankSection" class="mt-4 mb-4 hidden bg-white rounded-xl border border-gray-200 p-6">
+          <!-- 动态生成 -->
+        </div>
+
+
+        <button id="submitAllBtn" style="display: block;margin: 40px auto 0;"
+          class="px-8 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled>
+          提交所有答案
+        </button>
+      </div>
+    </div>
+
+    <div id="historyDetailModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+      <div class="bg-white rounded-xl p-8 max-w-xl w-full mx-4 transform transition-all scale-95 opacity-0"
+        id="historyDetailContent">
+        <div class="flex justify-between items-start mb-6">
+          <h3 class="text-xl font-bold text-gray-800" id="historyModalTitle">历史作答详情</h3>
+          <button id="closeHistoryDetailModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fa fa-times text-xl"></i>
           </button>
+        </div>
+
+        <div id="historySummary" class="bg-primary/5 p-4 rounded-lg mb-6">
+          <p class="text-lg font-bold text-primary mb-1">得分: <span id="historyScoreDisplay">0/0分</span></p>
+          <p class="text-sm text-gray-600">耗时: <span id="historyTimeDisplay">00:00</span> | 提交时间: <span
+              id="historySubmitTime"></span></p>
+        </div>
+
+        <div class="max-h-96 overflow-y-auto pr-2">
+          <h4 class="font-bold text-gray-700 mb-3">题目对错详情与解析：</h4>
+          <div id="historyDetailsList" class="space-y-3">
+          </div>
         </div>
       </div>
     </div>
 
-    <div id="historyDetailModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-xl p-8 max-w-xl w-full mx-4 transform transition-all scale-95 opacity-0" id="historyDetailContent">
-            <div class="flex justify-between items-start mb-6">
-                <h3 class="text-xl font-bold text-gray-800" id="historyModalTitle">历史作答详情</h3>
-                <button id="closeHistoryDetailModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <i class="fa fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <div id="historySummary" class="bg-primary/5 p-4 rounded-lg mb-6">
-                <p class="text-lg font-bold text-primary mb-1">得分: <span id="historyScoreDisplay">0/0分</span></p>
-                <p class="text-sm text-gray-600">耗时: <span id="historyTimeDisplay">00:00</span> | 提交时间: <span id="historySubmitTime"></span></p>
-            </div>
-
-            <div class="max-h-96 overflow-y-auto pr-2">
-                <h4 class="font-bold text-gray-700 mb-3">题目对错详情与解析：</h4>
-                <div id="historyDetailsList" class="space-y-3">
-                    </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="scoreDetailModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
-      <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center transform transition-all scale-95 opacity-0" id="scoreDetailContent">
+    <div id="scoreDetailModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+      <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center transform transition-all scale-95 opacity-0"
+        id="scoreDetailContent">
         <div class="text-green-500 text-4xl mb-4">
           <i class="fa fa-trophy"></i>
         </div>
         <h3 class="text-xl font-bold text-gray-800 mb-2" id="scoreModalTitle">作答提交成功！</h3>
         <p class="text-3xl font-bold mb-4 text-primary" id="finalScoreDisplay">0分</p>
         <p class="text-gray-600 mb-6" id="scoreMessage">本次答题得分已加入您的总积分！</p>
-        
+
         <div class="bg-gray-50 p-4 rounded-lg max-h-40 overflow-y-auto mb-6 text-left">
           <h4 class="font-bold mb-2">得分详情：</h4>
           <div id="scoreDetailList" class="space-y-1 text-sm">
-            </div>
+          </div>
         </div>
-        
-        <button id="closeScoreDetailModalBtn" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+
+        <button id="closeScoreDetailModalBtn"
+          class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
           确定
         </button>
       </div>
     </div>
-    
+
     <div id="modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
-      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 transform transition-all scale-95 opacity-0" id="modal-general-content">
+      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 transform transition-all scale-95 opacity-0"
+        id="modal-general-content">
         <div class="text-center">
-          <div id="modal-icon" class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div id="modal-icon"
+            class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <i class="fa fa-check text-secondary text-2xl"></i>
           </div>
           <h3 id="modal-title" class="text-xl font-bold mb-2">兑换成功</h3>
@@ -309,8 +389,9 @@
         </div>
       </div>
     </div>
-    
-    <div id="new-paper-modal" class="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 z-40 hidden animate-fadeIn">
+
+    <div id="new-paper-modal"
+      class="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 z-40 hidden animate-fadeIn">
       <div class="flex items-center">
         <i class="fa fa-bell text-accent text-xl mr-2"></i>
         <p class="text-gray-700 mr-4">有新的套卷发布啦！</p>
@@ -327,28 +408,28 @@
 
   <script>
     // 移动端菜单
-    document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+    document.getElementById('mobile-menu-btn').addEventListener('click', function () {
       document.getElementById('mobile-menu').classList.toggle('hidden');
     });
-    
+
     // --- 数据存取工具函数 ---
-    
+
     // 使用 LocalForage 异步获取数据
     async function getData(key) {
-        return await localforage.getItem(key);
+      return await localforage.getItem(key);
     }
 
     // 使用 LocalForage 异步保存数据
     async function saveData(key, value) {
-        await localforage.setItem(key, value);
+      await localforage.setItem(key, value);
     }
-    
+
     // 全局变量 - 登录和积分相关
     let userPoints = 0;
     let userName = '';
     let userId = '';
     let userRank = 0;
-    
+
     // 全局变量 - 答题相关
     const PAPER_STORAGE_KEY = 'gradePapers';
     const ANSWER_STORAGE_KEY = 'studentAnswers';
@@ -363,10 +444,15 @@
     let studentPointsData = {}; // 异步加载
     let exchangeRecords = []; // 异步加载
     let prizes = []; // 异步加载
-    
+
     // --- 计时器变量 ---
     let timerInterval = null;
     let secondsElapsed = 0;
+
+    // 填空题相关变量
+    let uploadedFbImage = null;
+    let fbSelfScore = 0;
+    let fbIsConfirmed = false; // 填空题是否已确认
 
     // DOM元素 - 登录相关
     const loginBtn = document.getElementById('login-btn');
@@ -380,14 +466,14 @@
     const noExchangeHint = document.createElement('div');
     noExchangeHint.className = 'text-center text-gray-500 py-6';
     noExchangeHint.innerHTML = '<i class="fa fa-inbox text-3xl mb-2"></i><p>暂无兑换记录</p>';
-    
+
     // 奖品编辑相关元素
     const editPrizesBtn = document.getElementById('edit-prizes-btn');
     const prizeEditForm = document.getElementById('prize-edit-form');
     const cancelEditPrize = document.getElementById('cancel-edit-prize');
     const savePrize = document.getElementById('save-prize');
     const prizesContainer = document.getElementById('prizes-container');
-    
+
     // DOM元素 - 答题相关
     const grade1PaperList = document.getElementById('grade1PaperList');
     const grade2PaperList = document.getElementById('grade2PaperList');
@@ -407,7 +493,7 @@
     const nextQuestionBtn = document.getElementById('nextQuestionBtn');
     const submitAllBtn = document.getElementById('submitAllBtn');
     const closeModalBtn = document.getElementById('closeModalBtn');
-    
+
     // *** 计时器和进度条 DOM 元素 ***
     const timerDisplay = document.getElementById('timerDisplay');
     const progressBar = document.getElementById('progressBar');
@@ -420,7 +506,7 @@
     const scoreDetailList = document.getElementById('scoreDetailList');
     const scoreMessage = document.getElementById('scoreMessage');
     const closeScoreDetailModalBtn = document.getElementById('closeScoreDetailModalBtn');
-    
+
     // *** 历史详情弹窗元素 (新增) ***
     const historyDetailModal = document.getElementById('historyDetailModal');
     const historyDetailContent = document.getElementById('historyDetailContent');
@@ -430,56 +516,56 @@
     const historySubmitTime = document.getElementById('historySubmitTime');
     const historyDetailsList = document.getElementById('historyDetailsList');
     const closeHistoryDetailModalBtn = document.getElementById('closeHistoryDetailModalBtn');
-    
+
     let allAnswerRecords = []; // 用于缓存所有学生的作答记录
 
     const newPaperModal = document.getElementById('new-paper-modal');
     const refreshPapersBtn = document.getElementById('refresh-papers-btn');
-    
+
     // 初始化
     async function init() {
       // 首次加载时同步加载必要数据
       studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
       exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
       prizes = await getData(PRIZES_STORAGE_KEY) || [];
-      
+
       // 绑定登录事件
       loginBtn.addEventListener('click', handleLogin);
-      
+
       // 绑定奖品兑换事件 (在 renderPrizes 中绑定)
-      
+
       // 绑定奖品编辑事件
       editPrizesBtn.addEventListener('click', togglePrizeEditForm);
       cancelEditPrize.addEventListener('click', togglePrizeEditForm);
       savePrize.addEventListener('click', savePrizeData);
-      
+
       // 绑定弹窗事件
       document.getElementById('modal-close').addEventListener('click', closeGeneralModal);
-      refreshPapersBtn.addEventListener('click', async function() {
+      refreshPapersBtn.addEventListener('click', async function () {
         newPaperModal.classList.add('hidden');
         await loadAndRenderPapers();
       });
-      
+
       // 绑定答题相关事件
       closeModalBtn.addEventListener('click', closeAnswerModal);
-      answerCardModal.addEventListener('click', e => e.target === answerCardModal && closeAnswerModal());
+      // answerCardModal.addEventListener('click', e => e.target === answerCardModal && closeAnswerModal());
       prevQuestionBtn.addEventListener('click', goToPrevQuestion);
       nextQuestionBtn.addEventListener('click', goToNextQuestion);
       submitAllBtn.addEventListener('click', submitAllAnswers);
-      closeScoreDetailModalBtn.addEventListener('click', closeScoreDetailModal); 
-      
+      closeScoreDetailModalBtn.addEventListener('click', closeScoreDetailModal);
+
       // *** 绑定历史详情弹窗关闭事件 ***
       closeHistoryDetailModalBtn.addEventListener('click', closeHistoryDetailModal);
       historyDetailModal.addEventListener('click', e => e.target === historyDetailModal && closeHistoryDetailModal());
 
       // 确保所有链接可点击
       document.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', function(e) {
+        link.addEventListener('click', function (e) {
           e.preventDefault();
           window.location.href = this.getAttribute('href');
         });
       });
-      
+
       // 监听异步数据加载（取代原有的 localStorage 监听）
       await initPrizes();
       await loadRankingList();
@@ -488,28 +574,28 @@
     // --- 计时器控制函数 ---
 
     function startTimer() {
-        if (timerInterval) clearInterval(timerInterval);
-        secondsElapsed = 0; // 重置计时
+      if (timerInterval) clearInterval(timerInterval);
+      secondsElapsed = 0; // 重置计时
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
         updateTimerDisplay();
-        timerInterval = setInterval(() => {
-            secondsElapsed++;
-            updateTimerDisplay();
-        }, 1000);
+      }, 1000);
     }
 
     function stopTimer() {
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-        }
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
     }
 
     function updateTimerDisplay() {
-        const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
-        const seconds = String(secondsElapsed % 60).padStart(2, '0');
-        timerDisplay.textContent = `${minutes}:${seconds}`;
+      const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+      const seconds = String(secondsElapsed % 60).padStart(2, '0');
+      timerDisplay.textContent = `${minutes}:${seconds}`;
     }
-    
+
     // 初始化奖品数据
     async function initPrizes() {
       let currentPrizes = await getData(PRIZES_STORAGE_KEY);
@@ -546,11 +632,11 @@
         ];
         await saveData(PRIZES_STORAGE_KEY, prizes);
       } else {
-          prizes = currentPrizes;
+        prizes = currentPrizes;
       }
       renderPrizes();
     }
-    
+
     // 渲染奖品列表
     function renderPrizes() {
       prizesContainer.innerHTML = '';
@@ -559,7 +645,7 @@
         prizeCard.className = 'border rounded-lg p-4 text-center hover:shadow-md transition-shadow prize-card';
         prizeCard.dataset.points = prize.points;
         prizeCard.dataset.id = prize.id;
-        
+
         prizeCard.innerHTML = `
           <div class="w-16 h-16 ${prize.bgColor} rounded-full flex items-center justify-center mx-auto mb-3">
             <i class="fa ${prize.icon} ${prize.iconColor} text-2xl"></i>
@@ -569,37 +655,37 @@
           <p class="text-accent font-bold">${prize.points}分</p>
           <button class="mt-2 text-sm bg-gray-200 text-gray-500 px-3 py-1 rounded-full prize-btn" data-prize="${prize.name}">积分不足</button>
         `;
-        
+
         prizesContainer.appendChild(prizeCard);
       });
-      
+
       // 重新绑定兑换事件
       document.querySelectorAll('.prize-btn').forEach(btn => {
         btn.addEventListener('click', handlePrizeExchange);
       });
-      
+
       // 如果已登录，更新奖品按钮状态
       if (userName) {
         updatePrizeButtons();
       }
     }
-    
+
     // 切换奖品编辑表单显示状态
     function togglePrizeEditForm() {
       prizeEditForm.classList.toggle('hidden');
     }
-    
+
     // 保存奖品数据 (仅在学生端用于测试，实际应由 Admin 端管理)
     async function savePrizeData() {
       const prizeName = document.getElementById('prize-name').value.trim();
       const prizePoints = parseInt(document.getElementById('prize-points').value);
       const prizeDesc = document.getElementById('prize-desc').value.trim();
-      
+
       if (!prizeName || !prizePoints || !prizeDesc) {
         showGeneralModal('输入错误', '请填写完整的奖品信息', 'warning');
         return;
       }
-      
+
       // 创建新奖品
       const newPrize = {
         id: 'prize_' + Date.now(),
@@ -610,43 +696,43 @@
         iconColor: 'text-primary',
         bgColor: 'bg-blue-100'
       };
-      
+
       prizes.push(newPrize);
       await saveData(PRIZES_STORAGE_KEY, prizes);
-      
+
       // 刷新奖品列表
       renderPrizes();
-      
+
       // 关闭表单
       togglePrizeEditForm();
-      
+
       // 清空表单
       document.getElementById('prize-name').value = '';
       document.getElementById('prize-points').value = '';
       document.getElementById('prize-desc').value = '';
-      
+
       showGeneralModal('成功', '奖品添加成功', 'success');
     }
-    
+
     // 处理登录
     async function handleLogin() {
       const name = studentNameInput.value.trim();
       const id = studentIdInput.value.trim();
-      
+
       if (!name || !id) {
         alert('请输入姓名和学号');
         return;
       }
-      
+
       // 保存学生信息
       userName = name;
       userId = id;
       studentInfo = { name, id };
       await saveData(STUDENT_INFO_KEY, studentInfo);
-      
+
       // 从 IndexedDB 加载最新的积分数据
       studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
-      
+
       // 初始化学生积分数据
       if (!studentPointsData[id]) {
         studentPointsData[id] = {
@@ -657,81 +743,81 @@
         };
         await saveData(STUDENT_POINTS_KEY, studentPointsData);
       }
-      
+
       // 获取当前积分
       userPoints = studentPointsData[id].points;
-      
+
       // 更新用户信息显示
       document.getElementById('user-name-display').textContent = userName;
       document.getElementById('user-id-display').textContent = `学号: ${userId}`;
       updateUserPointsDisplay();
-      
+
       // 计算排名
       await calculateUserRank();
-      
+
       // 显示用户卡片和兑换记录
       userPointsCard.classList.remove('hidden');
       exchangeHistory.classList.remove('hidden');
-      
+
       // 显示答题区域并加载套卷
       examContainer.classList.remove('hidden');
       await loadAndRenderPapers();
-      
+
       // 加载兑换记录
       await loadExchangeRecords();
-      
+
       // 更新奖品按钮状态
       updatePrizeButtons();
-      
+
       // 首次登录才显示提示
       showGeneralModal('登录成功', `欢迎 ${userName}（学号：${userId}），当前积分：${userPoints}分`, 'success');
     }
-    
+
     // 更新用户积分显示
     function updateUserPointsDisplay() {
       document.getElementById('user-points').textContent = `${userPoints}分`;
-      
+
       // 计算升级进度
       const level = Math.floor(userPoints / 1000) + 1;
       const nextLevelPoints = level * 1000;
       const progress = ((userPoints % 1000) / 1000) * 100;
-      
+
       document.getElementById('points-progress').style.width = `${progress}%`;
       // 修复：确保目标元素选择正确
       document.querySelector('#user-points-card .mt-4.pt-4.border-t .ml-3.text-sm.text-gray-500').textContent = `距离下一级: ${nextLevelPoints - userPoints}分`;
     }
-    
+
     // 计算用户排名
     async function calculateUserRank() {
       // 重新从 IndexedDB 加载数据以确保最新
       studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
-      
+
       // 转换为数组并排序
       const studentsArray = Object.values(studentPointsData);
       studentsArray.sort((a, b) => b.points - a.points);
-      
+
       // 查找当前用户排名
       const userIndex = studentsArray.findIndex(s => s.id === userId);
       userRank = userIndex + 1;
-      
+
       // 更新排名显示
       document.getElementById('user-rank').textContent = `第${userRank}名`;
     }
-    
+
     // 加载排行榜
     async function loadRankingList() {
       rankingList.innerHTML = '';
-      
+
       // 从 IndexedDB 加载最新数据
       studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
-      
+
       // 转换为数组并排序
       const studentsArray = Object.values(studentPointsData);
       studentsArray.sort((a, b) => b.points - a.points);
-      
+
       // 只显示前10名
       const topStudents = studentsArray.slice(0, 10);
-      
+
       if (topStudents.length === 0) {
         rankingList.innerHTML = '<div class="md:col-span-2 text-center text-gray-500 py-6">暂无排名数据</div>';
         return;
@@ -748,10 +834,10 @@
         } else {
           rankStyle = 'bg-gray-200 text-gray-700';
         }
-        
+
         const rankItem = document.createElement('div');
         rankItem.className = 'flex items-center p-3 border rounded-lg';
-        
+
         rankItem.innerHTML = `
           <div class="w-8 h-8 rounded-full ${rankStyle} flex items-center justify-center font-bold mr-3">
             ${index + 1}
@@ -764,24 +850,24 @@
             <p class="font-bold text-accent">${student.points}分</p>
           </div>
         `;
-        
+
         rankingList.appendChild(rankItem);
       });
     }
-    
+
     // 加载兑换记录
     async function loadExchangeRecords() {
       // 从 IndexedDB 加载最新数据
       exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
-      
+
       const userRecords = exchangeRecords.filter(record => record.studentId === userId);
-      
+
       if (userRecords.length === 0) {
         historyList.innerHTML = '';
         historyList.appendChild(noExchangeHint);
         return;
       }
-      
+
       historyList.innerHTML = '';
       userRecords.forEach(record => {
         const historyItem = document.createElement('div');
@@ -793,20 +879,20 @@
           </div>
           <p class="text-accent font-bold">-${record.points}分</p>
         `;
-        
+
         historyList.appendChild(historyItem);
       });
     }
-    
+
     // 更新奖品按钮状态
     function updatePrizeButtons() {
       const prizeCards = document.querySelectorAll('.prize-card');
-      
+
       prizeCards.forEach(card => {
         const requiredPoints = parseInt(card.dataset.points);
         const prizeBtn = card.querySelector('.prize-btn');
         const prizeName = prizeBtn.dataset.prize;
-        
+
         if (userPoints >= requiredPoints) {
           prizeBtn.classList.remove('bg-gray-200', 'text-gray-500');
           prizeBtn.classList.add('bg-primary/10', 'text-primary');
@@ -820,28 +906,28 @@
         }
       });
     }
-    
+
     // 奖品兑换处理
     async function handlePrizeExchange() {
       if (!userName) {
         showGeneralModal('请先登录', '请先登录后再进行兑换', 'warning');
         return;
       }
-      
+
       const prizeBtn = this;
       const prizeName = prizeBtn.dataset.prize;
       const prizeCard = prizeBtn.closest('.prize-card');
       const requiredPoints = parseInt(prizeCard.dataset.points);
-      
+
       if (userPoints < requiredPoints) {
         showGeneralModal('兑换失败', `您的积分不足，需要${requiredPoints}分`, 'warning');
         return;
       }
-      
+
       if (!confirm(`确定要兑换${prizeName}吗？将消耗${requiredPoints}积分。`)) {
         return;
       }
-      
+
       // 记录兑换历史
       const exchangeRecord = {
         id: 'exchange_' + Date.now(),
@@ -851,27 +937,27 @@
         points: requiredPoints,
         time: new Date().toLocaleString()
       };
-      
+
       exchangeRecords.push(exchangeRecord);
       await saveData(EXCHANGE_RECORDS_KEY, exchangeRecords);
-      
+
       // 更新用户积分
       userPoints -= requiredPoints;
       studentPointsData[userId].points = userPoints;
       studentPointsData[userId].lastUpdate = new Date().toLocaleString();
       await saveData(STUDENT_POINTS_KEY, studentPointsData);
-      
+
       // 刷新UI
       updateUserPointsDisplay();
       updatePrizeButtons();
       await loadExchangeRecords();
       await calculateUserRank();
       await loadRankingList();
-      
+
       // 显示成功弹窗
       showGeneralModal('兑换成功', `您已成功兑换${prizeName}，积分已扣除${requiredPoints}分`, 'success');
     }
-    
+
     // 显示通用弹窗
     function showGeneralModal(title, message, type = 'success') {
       const modal = document.getElementById('modal');
@@ -879,7 +965,7 @@
       const modalTitle = document.getElementById('modal-title');
       const modalMessage = document.getElementById('modal-message');
       const modalIcon = document.getElementById('modal-icon');
-      
+
       // 设置弹窗类型样式
       if (type === 'success') {
         modalIcon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
@@ -888,39 +974,39 @@
         modalIcon.className = 'w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4';
         modalIcon.innerHTML = '<i class="fa fa-exclamation-circle text-orange-500 text-2xl"></i>';
       }
-      
+
       modalTitle.textContent = title;
       modalMessage.textContent = message;
-      
+
       // 显示弹窗
       modal.classList.remove('hidden');
-      
+
       // 动画效果
       setTimeout(() => {
         modalContent.classList.remove('scale-95', 'opacity-0');
         modalContent.classList.add('scale-100', 'opacity-100');
       }, 10);
     }
-    
+
     // 关闭通用弹窗
     function closeGeneralModal() {
       const modal = document.getElementById('modal');
       const modalContent = document.getElementById('modal-general-content');
-      
+
       // 动画效果
       modalContent.classList.remove('scale-100', 'opacity-100');
       modalContent.classList.add('scale-95', 'opacity-0');
-      
+
       setTimeout(() => {
         modal.classList.add('hidden');
       }, 300);
     }
-    
+
     // 加载并渲染套卷列表
     async function loadAndRenderPapers() {
       // 优先读取 LocalForage 中的真实数据（管理员添加的套卷）
       const papers = await getData(PAPER_STORAGE_KEY) || [];
-      
+
       // 缓存所有学生的作答记录
       allAnswerRecords = await getData(ANSWER_STORAGE_KEY) || [];
 
@@ -982,43 +1068,43 @@
         const reloadedPapers = await getData(PAPER_STORAGE_KEY) || [];
         return processAndRenderPapers(reloadedPapers);
       }
-      
+
       processAndRenderPapers(papers);
     }
-    
+
     // 处理和渲染套卷的内部函数
     function processAndRenderPapers(papers) {
       // 按年级过滤
       const grade1Papers = papers.filter(p => p.grade === 'grade1');
       const grade2Papers = papers.filter(p => p.grade === 'grade2');
       const grade3Papers = papers.filter(p => p.grade === 'grade3');
-      
+
       // 更新套卷数量
       grade1PaperCount.textContent = `${grade1Papers.length}套`;
       grade2PaperCount.textContent = `${grade2Papers.length}套`;
       grade3PaperCount.textContent = `${grade3Papers.length}套`;
-      
+
       // 渲染各年级套卷列表
       renderPaperList(grade1PaperList, grade1Papers);
       renderPaperList(grade2PaperList, grade2Papers);
       renderPaperList(grade3PaperList, grade3Papers);
     }
-    
+
     /**
      * 检查当前学生是否已经提交过该套题
      * @param {string} paperId 套卷 ID
      * @returns {Promise<object | null>} 返回最新的作答记录，如果没有则返回 null
      */
     async function getLatestAnswerRecord(paperId) {
-        const userRecords = allAnswerRecords.filter(a => a.studentId === userId && a.paperId === paperId);
-        
-        if (userRecords.length === 0) {
-            return null;
-        }
-        
-        // 找到最新提交的记录 (假设 submitTime 是可比较的字符串或时间戳)
-        userRecords.sort((a, b) => new Date(b.submitTime).getTime() - new Date(a.submitTime).getTime());
-        return userRecords[0];
+      const userRecords = allAnswerRecords.filter(a => a.studentId === userId && a.paperId === paperId);
+
+      if (userRecords.length === 0) {
+        return null;
+      }
+
+      // 找到最新提交的记录 (假设 submitTime 是可比较的字符串或时间戳)
+      userRecords.sort((a, b) => new Date(b.submitTime).getTime() - new Date(a.submitTime).getTime());
+      return userRecords[0];
     }
 
 
@@ -1028,32 +1114,32 @@
         container.innerHTML = '<div class="text-center text-gray-500 py-6">暂无套卷</div>';
         return;
       }
-      
+
       container.innerHTML = '';
       papers.forEach(async (paper, index) => {
         // 判断是否为24小时内新增的套卷
-        const isNew = paper.createTime ? 
-          new Date() - new Date(paper.createTime) < 24 * 60 * 60 * 1000 : 
+        const isNew = paper.createTime ?
+          new Date() - new Date(paper.createTime) < 24 * 60 * 60 * 1000 :
           false;
-        
+
         // 异步获取最新的作答记录
         const latestRecord = await getLatestAnswerRecord(paper.id);
         const hasAnswered = latestRecord !== null;
-        
+
         let statusHtml = '';
         let buttonHtml = '';
-        
+
         if (hasAnswered) {
-             statusHtml = `<span class="ml-3 text-sm font-bold ${latestRecord.isFirstSubmission ? 'text-secondary' : 'text-red-500'}">
+          statusHtml = `<span class="ml-3 text-sm font-bold ${latestRecord.isFirstSubmission ? 'text-secondary' : 'text-red-500'}">
                 ${latestRecord.isFirstSubmission ? '已作答' : '已重做'} · 得分 ${latestRecord.score}/${paper.totalPoints}
             </span>`;
-             buttonHtml = `
+          buttonHtml = `
                 <button class="text-primary hover:text-primary/70 text-sm view-history-btn" data-paper-id="${paper.id}">
                     <i class="fa fa-eye mr-1"></i> 查看详情
                 </button>`;
         } else {
-             statusHtml = `<span class="ml-3 text-sm text-gray-500">点击开始作答</span>`;
-             buttonHtml = ``;
+          statusHtml = `<span class="ml-3 text-sm text-gray-500">点击开始作答</span>`;
+          buttonHtml = ``;
         }
 
         const paperItem = document.createElement('div');
@@ -1075,23 +1161,23 @@
           </div>
           ${isNew ? '<span class="badge-new">新</span>' : ''}
         `;
-        
+
         // 点击套卷主体打开答题卡
-        paperItem.addEventListener('click', function(e) {
-            // 确保不是点击了“查看详情”按钮
-            if (!e.target.closest('.view-history-btn')) {
-                const paperId = this.dataset.paperId;
-                openAnswerCard(paperId);
-            }
+        paperItem.addEventListener('click', function (e) {
+          // 确保不是点击了“查看详情”按钮
+          if (!e.target.closest('.view-history-btn')) {
+            const paperId = this.dataset.paperId;
+            openAnswerCard(paperId);
+          }
         });
-        
+
         // *** 绑定查看详情事件 ***
         if (hasAnswered) {
-            paperItem.querySelector('.view-history-btn').addEventListener('click', function() {
-                showHistoryDetailModal(paper.id);
-            });
+          paperItem.querySelector('.view-history-btn').addEventListener('click', function () {
+            showHistoryDetailModal(paper.id);
+          });
         }
-        
+
         container.appendChild(paperItem);
       });
     }
@@ -1101,40 +1187,40 @@
      * @param {string} paperId 套卷 ID
      */
     async function showHistoryDetailModal(paperId) {
-        const paper = (await getData(PAPER_STORAGE_KEY)).find(p => p.id === paperId);
-        if (!paper) return;
+      const paper = (await getData(PAPER_STORAGE_KEY)).find(p => p.id === paperId);
+      if (!paper) return;
 
-        // 获取该学生对该套题的所有作答记录
-        const userRecords = allAnswerRecords.filter(a => a.studentId === userId && a.paperId === paperId);
-        
-        if (userRecords.length === 0) {
-            alert('未找到您的作答记录。');
-            return;
-        }
+      // 获取该学生对该套题的所有作答记录
+      const userRecords = allAnswerRecords.filter(a => a.studentId === userId && a.paperId === paperId);
 
-        // 默认显示最新记录
-        userRecords.sort((a, b) => new Date(b.submitTime).getTime() - new Date(a.submitTime).getTime());
-        const latestRecord = userRecords[0];
+      if (userRecords.length === 0) {
+        alert('未找到您的作答记录。');
+        return;
+      }
 
-        // 填充基本信息
-        historyModalTitle.textContent = `${paper.name} - 历史作答详情`;
-        historyScoreDisplay.textContent = `${latestRecord.score}/${latestRecord.totalPoints}分`;
-        historySubmitTime.textContent = latestRecord.submitTime;
-        
-        // 格式化耗时
-        const timeElapsed = latestRecord.timeElapsed || 0;
-        const minutes = String(Math.floor(timeElapsed / 60)).padStart(2, '0');
-        const seconds = String(timeElapsed % 60).padStart(2, '0');
-        historyTimeDisplay.textContent = `${minutes}:${seconds}`;
+      // 默认显示最新记录
+      userRecords.sort((a, b) => new Date(b.submitTime).getTime() - new Date(a.submitTime).getTime());
+      const latestRecord = userRecords[0];
 
-        // 填充详细对错列表
-        historyDetailsList.innerHTML = '';
-        
-        latestRecord.answers.forEach((ans, i) => {
-            const isCorrect = ans === paper.answers[i];
-            const detailItem = document.createElement('div');
-            detailItem.className = `p-3 rounded-lg ${isCorrect ? 'result-correct' : 'result-incorrect'}`;
-            detailItem.innerHTML = `
+      // 填充基本信息
+      historyModalTitle.textContent = `${paper.name} - 历史作答详情`;
+      historyScoreDisplay.textContent = `${latestRecord.score}/${latestRecord.totalPoints}分`;
+      historySubmitTime.textContent = latestRecord.submitTime;
+
+      // 格式化耗时
+      const timeElapsed = latestRecord.timeElapsed || 0;
+      const minutes = String(Math.floor(timeElapsed / 60)).padStart(2, '0');
+      const seconds = String(timeElapsed % 60).padStart(2, '0');
+      historyTimeDisplay.textContent = `${minutes}:${seconds}`;
+
+      // 填充详细对错列表
+      historyDetailsList.innerHTML = '';
+
+      latestRecord.answers.forEach((ans, i) => {
+        const isCorrect = ans === paper.answers[i];
+        const detailItem = document.createElement('div');
+        detailItem.className = `p-3 rounded-lg ${isCorrect ? 'result-correct' : 'result-incorrect'}`;
+        detailItem.innerHTML = `
                 <p class="font-medium">
                     <span class="mr-2">${i + 1}. 题目 ${i + 1}</span>
                     <span class="text-sm">${isCorrect ? '✅ 回答正确' : '❌ 回答错误'}</span>
@@ -1147,27 +1233,47 @@
                     </p>
                 </div>
             `;
-            historyDetailsList.appendChild(detailItem);
-        });
+        historyDetailsList.appendChild(detailItem);
+      });
 
-        // 显示弹窗
-        historyDetailModal.classList.remove('hidden');
-        setTimeout(() => {
-            historyDetailContent.classList.remove('scale-95', 'opacity-0');
-            historyDetailContent.classList.add('scale-100', 'opacity-100');
-        }, 10);
+      // 如果有填空题，显示填空题详情
+      if (latestRecord.fillInBlankStudentImage && paper.fillInBlankCount > 0) {
+        const fbDetailItem = document.createElement('div');
+        fbDetailItem.className = 'mt-6 border-t pt-4';
+        fbDetailItem.innerHTML = `
+                <h4 class="font-bold text-gray-700 mb-3">填空题部分 (自评得分: ${latestRecord.fillInBlankScore}分)</h4>
+                <div class="grid md:grid-cols-2 gap-4">
+                   <div class="border rounded-lg p-2">
+                      <h5 class="text-center font-bold mb-2 text-xs text-gray-500">你的答题卡</h5>
+                      <img src="${latestRecord.fillInBlankStudentImage}" class="w-full h-auto rounded object-contain cursor-pointer hover:opacity-90" onclick="showImagePreview(this.src)" />
+                   </div>
+                   <div class="border rounded-lg p-2 bg-green-50">
+                      <h5 class="text-center font-bold mb-2 text-xs text-green-700">参考答案</h5>
+                      <img src="${paper.fillInBlankAnswerImage || ''}" class="w-full h-auto rounded object-contain cursor-pointer hover:opacity-90" onclick="showImagePreview(this.src)" />
+                   </div>
+                </div>
+            `;
+        historyDetailsList.appendChild(fbDetailItem);
+      }
+
+      // 显示弹窗
+      historyDetailModal.classList.remove('hidden');
+      setTimeout(() => {
+        historyDetailContent.classList.remove('scale-95', 'opacity-0');
+        historyDetailContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
     }
 
     // 关闭历史详情弹窗
     function closeHistoryDetailModal() {
-        historyDetailContent.classList.remove('scale-100', 'opacity-100');
-        historyDetailContent.classList.add('scale-95', 'opacity-0');
-        setTimeout(() => {
-            historyDetailModal.classList.add('hidden');
-        }, 300);
+      historyDetailContent.classList.remove('scale-100', 'opacity-100');
+      historyDetailContent.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        historyDetailModal.classList.add('hidden');
+      }, 300);
     }
 
-    
+
     // 打开答题卡
     async function openAnswerCard(paperId) {
       if (!userName) {
@@ -1177,40 +1283,40 @@
 
       const papers = await getData(PAPER_STORAGE_KEY) || [];
       currentPaper = papers.find(p => p.id === paperId);
-      
+
       if (!currentPaper) return;
-      
+
       // 检查是否已作答 (只用于界面提示，不阻止作答)
       const latestRecord = await getLatestAnswerRecord(paperId);
       const hasAnswered = latestRecord !== null;
-      
+
       // *** 优化 1: 启动计时器 ***
       stopTimer(); // 确保旧计时器停止
       startTimer();
-      
+
       // 初始化答案存储
       studentAnswers = new Array(currentPaper.questionCount).fill(null);
       currentQuestionIndex = 0;
-      
+
       // 填充弹窗信息
       modalPaperTitle.textContent = currentPaper.name;
-      modalPaperInfo.textContent = `共${currentPaper.questionCount}题 · 每题${currentPaper.singlePoints}分 · 总分${currentPaper.totalPoints}分`;
-      
+      modalPaperInfo.textContent = `选择题共${currentPaper.questionCount}题 · 每题${currentPaper.singlePoints}分 · 总分${currentPaper.totalPoints}分`;
+
       // 生成题目导航
       generateQuestionNav();
-      
+
       // 渲染第一题
       renderCurrentQuestion();
-      
+
       // 更新按钮状态
       updateNavButtons();
-      
+
       // 额外的提示和提交按钮文本/禁用处理
       if (hasAnswered) {
-          submitAllBtn.textContent = '提交 (无积分)';
-          // 提交按钮在首次渲染时默认是 disabled，但在答完所有题后会启用，此处无需特殊处理
+        submitAllBtn.textContent = '提交 (无积分)';
+        // 提交按钮在首次渲染时默认是 disabled，但在答完所有题后会启用，此处无需特殊处理
       } else {
-          submitAllBtn.textContent = '提交所有答案';
+        submitAllBtn.textContent = '提交所有答案';
       }
 
       // 显示弹窗
@@ -1219,8 +1325,167 @@
         modalContent.classList.remove('scale-95', 'opacity-0');
         modalContent.classList.add('scale-100', 'opacity-100');
       }, 10);
+
+      // 渲染填空题部分
+      renderFillBlankSection(hasAnswered);
     }
-    
+
+    // 渲染填空题部分
+    function renderFillBlankSection(hasAnswered) {
+      const fbSection = document.getElementById('fillBlankSection');
+      const count = currentPaper.fillInBlankCount || 0;
+
+      if (count === 0) {
+        fbSection.classList.add('hidden');
+        return;
+      }
+
+      fbSection.classList.remove('hidden');
+
+      // 如果已经作答过，不再允许上传和重新评分，只显示结果 (但在 submitAllAnswers 里会更新 UI)
+      // 这里主要处理尚未提交时的 UI
+
+      const totalFbPoints = count * (currentPaper.fillInBlankPoints || 0);
+
+      fbSection.innerHTML = `
+        <h4 class="text-lg font-bold mb-4 flex items-center">
+            <i class="fa fa-pencil text-primary mr-2"></i> 填空题部分 
+            <span class="ml-2 text-sm bg-gray-100 px-2 py-1 rounded text-gray-600">共${count}题 · 总分${totalFbPoints}分</span>
+        </h4>
+        
+        <div id="fbUploadStep" class="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <input type="file" id="fbUploadInput" accept="image/*" class="hidden">
+            <div class="cursor-pointer" onclick="document.getElementById('fbUploadInput').click()">
+                <i class="fa fa-cloud-upload text-4xl text-gray-400 mb-3"></i>
+                <p class="font-medium text-gray-700">点击上传答题卡照片</p>
+                <p class="text-sm text-gray-500 mt-1">上传后需确认才能查看参考答案</p>
+            </div>
+        </div>
+        
+        <div id="fbGradingStep" class="hidden animate-fadeIn">
+            <div class="grid md:grid-cols-2 gap-4">
+               <div class="border rounded-lg p-2">
+                  <h5 class="text-center font-bold mb-2 text-gray-700">你的答案</h5>
+                  <img id="fbStudentImage" class="w-full h-auto rounded object-contain max-h-[300px] cursor-pointer hover:opacity-90" onclick="showImagePreview(this.src)" />
+                  
+                  <!-- 操作按钮区域 -->
+                  <div id="fbActionButtons" class="mt-3 flex justify-center space-x-3">
+                      <button onclick="reuploadImage()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium">
+                        <i class="fa fa-refresh mr-1"></i> 重新上传
+                      </button>
+                      <button onclick="confirmUpload()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 text-sm font-medium">
+                        <i class="fa fa-check mr-1"></i> 确认提交
+                      </button>
+                  </div>
+                  <div id="fbConfirmedBadge" class="hidden mt-2 text-center">
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                        <i class="fa fa-lock mr-1"></i> 已确认
+                    </span>
+                  </div>
+               </div>
+               
+               <div id="fbReferenceArea" class="hidden border rounded-lg p-2 bg-green-50">
+                  <h5 class="text-center font-bold mb-2 text-green-700">参考答案</h5>
+                  <img id="fbTeacherImage" src="${currentPaper.fillInBlankAnswerImage || ''}" class="w-full h-auto rounded object-contain max-h-[300px] cursor-pointer hover:opacity-90" onclick="showImagePreview(this.src)" />
+               </div>
+            </div>
+            
+            <div id="fbScoreArea" class="hidden mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+               <label class="block font-bold text-gray-800 mb-2">请根据参考答案自行评分 (0 - ${totalFbPoints}分)：</label>
+               <input type="number" id="fbScoreInput" min="0" max="${totalFbPoints}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent" placeholder="输入你的得分">
+            </div>
+        </div>
+      `;
+
+      // 绑定上传事件
+      const uploadInput = document.getElementById('fbUploadInput');
+      if (uploadInput) {
+        uploadInput.addEventListener('change', async function (e) {
+          if (this.files && this.files[0]) {
+            try {
+              const base64 = await getBase64(this.files[0]);
+              uploadedFbImage = base64;
+              fbIsConfirmed = false; // 重置确认状态
+
+              // 切换显示
+              document.getElementById('fbUploadStep').classList.add('hidden');
+              document.getElementById('fbGradingStep').classList.remove('hidden');
+
+              document.getElementById('fbStudentImage').src = base64;
+
+              // 确保操作按钮显示，参考答案隐藏
+              document.getElementById('fbActionButtons').classList.remove('hidden');
+              document.getElementById('fbConfirmedBadge').classList.add('hidden');
+              document.getElementById('fbReferenceArea').classList.add('hidden');
+              document.getElementById('fbScoreArea').classList.add('hidden');
+
+              // 更新提交按钮
+              const allAnswered = studentAnswers.every(answer => answer !== null);
+              submitAllBtn.disabled = !allAnswered || (currentPaper.fillInBlankAnswerImage ? !uploadedFbImage : false);
+            } catch (err) {
+              console.error(err);
+              alert('图片上传失败');
+            }
+          }
+        });
+      }
+
+      // 绑定评分输入
+      const scoreInput = document.getElementById('fbScoreInput');
+      if (scoreInput) {
+        scoreInput.addEventListener('input', function () {
+          let val = parseInt(this.value);
+          if (isNaN(val)) val = 0;
+          if (val > totalFbPoints) {
+            val = totalFbPoints;
+            this.value = totalFbPoints;
+          }
+          if (val < 0) {
+            val = 0;
+            this.value = 0;
+          }
+          fbSelfScore = val;
+        });
+      }
+
+      // 重置变量
+      uploadedFbImage = null;
+      fbSelfScore = 0;
+      fbIsConfirmed = false;
+    }
+
+    // 重新上传图片
+    function reuploadImage() {
+      document.getElementById('fbUploadInput').click();
+    }
+
+    // 确认上传
+    function confirmUpload() {
+      if (!uploadedFbImage) return;
+
+      if (!confirm('确认提交这张答题卡吗？确认后将显示参考答案且无法再修改图片。')) {
+        return;
+      }
+
+      fbIsConfirmed = true;
+
+      // 隐藏按钮，显示参考答案和评分
+      document.getElementById('fbActionButtons').classList.add('hidden');
+      document.getElementById('fbConfirmedBadge').classList.remove('hidden');
+      document.getElementById('fbReferenceArea').classList.remove('hidden');
+      document.getElementById('fbScoreArea').classList.remove('hidden');
+    }
+
+    // 辅助函数：文件转Base64
+    function getBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+    }
+
     // 生成题目导航
     function generateQuestionNav() {
       questionNav.innerHTML = '';
@@ -1229,18 +1494,18 @@
         navBtn.className = `w-8 h-8 rounded-full flex items-center justify-center text-sm ${i === 0 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`;
         navBtn.textContent = i + 1;
         navBtn.dataset.questionIndex = i;
-        
-        navBtn.addEventListener('click', function() {
+
+        navBtn.addEventListener('click', function () {
           currentQuestionIndex = parseInt(this.dataset.questionIndex);
           renderCurrentQuestion();
           updateNavButtons();
           updateQuestionNavStyle();
         });
-        
+
         questionNav.appendChild(navBtn);
       }
     }
-    
+
     // 更新题目导航样式
     function updateQuestionNavStyle() {
       const navButtons = questionNav.querySelectorAll('button');
@@ -1254,11 +1519,11 @@
         }
       });
     }
-    
+
     // 渲染当前题目
     function renderCurrentQuestion() {
       const questionNumber = currentQuestionIndex + 1;
-      
+
       // 生成题目内容
       questionContent.innerHTML = `
         <div class="mb-4">
@@ -1278,10 +1543,10 @@
           `).join('')}
         </div>
       `;
-      
+
       // 绑定选项点击事件
       questionContent.querySelectorAll('.option-item').forEach(option => {
-        option.addEventListener('click', function() {
+        option.addEventListener('click', function () {
           const selectedOption = this.dataset.option;
           studentAnswers[currentQuestionIndex] = selectedOption;
           renderCurrentQuestion();
@@ -1289,37 +1554,37 @@
           updateNavButtons();
         });
       });
-      
+
       // *** 优化 1: 更新进度条 ***
       updateProgressBar();
     }
-    
+
     // *** 新增：更新进度条 ***
     function updateProgressBar() {
-        const answeredCount = studentAnswers.filter(a => a !== null).length;
-        const totalCount = currentPaper.questionCount;
-        const progressPercentage = (answeredCount / totalCount) * 100;
+      const answeredCount = studentAnswers.filter(a => a !== null).length;
+      const totalCount = currentPaper.questionCount;
+      const progressPercentage = (answeredCount / totalCount) * 100;
 
-        progressBar.style.width = `${progressPercentage}%`;
-        progressText.textContent = `${answeredCount} / ${totalCount} 题`;
+      progressBar.style.width = `${progressPercentage}%`;
+      progressText.textContent = `${answeredCount} / ${totalCount} 题`;
     }
 
     // 更新导航按钮状态
     function updateNavButtons() {
       // 更新上一题按钮
       prevQuestionBtn.disabled = currentQuestionIndex === 0;
-      
+
       // 更新下一题按钮
       nextQuestionBtn.disabled = currentQuestionIndex === currentPaper.questionCount - 1;
-      
+
       // 更新提交按钮
       const allAnswered = studentAnswers.every(answer => answer !== null);
-      submitAllBtn.disabled = !allAnswered;
-      
+      submitAllBtn.disabled = !allAnswered || (currentPaper.fillInBlankAnswerImage ? !uploadedFbImage : false);
+
       // 更新导航样式
       updateQuestionNavStyle();
     }
-    
+
     // 上一题
     function goToPrevQuestion() {
       if (currentQuestionIndex > 0) {
@@ -1328,7 +1593,7 @@
         updateNavButtons();
       }
     }
-    
+
     // 下一题
     function goToNextQuestion() {
       if (currentQuestionIndex < currentPaper.questionCount - 1) {
@@ -1337,13 +1602,44 @@
         updateNavButtons();
       }
     }
-    
+
     // 提交所有答案
     async function submitAllAnswers() {
+      // 检查填空题是否已完成
+      if (currentPaper.fillInBlankCount > 0) {
+        if (!uploadedFbImage) {
+          alert('请上传填空题答题卡照片');
+          // 滚动到底部
+          document.getElementById('fillBlankSection').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        if (!fbIsConfirmed) {
+          alert('请先确认您的填空题答题卡，以便显示参考答案进行自评');
+          document.getElementById('fillBlankSection').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        if (!fbIsConfirmed) {
+          alert('请先确认您的填空题答题卡，以便显示参考答案进行自评');
+          document.getElementById('fillBlankSection').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        if (!fbIsConfirmed) {
+          alert('请先确认您的填空题答题卡，以便显示参考答案进行自评');
+          document.getElementById('fillBlankSection').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        const scoreInput = document.getElementById('fbScoreInput');
+        if (!scoreInput.value) {
+          alert('请为填空题部分打分');
+          document.getElementById('fillBlankSection').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+      }
+
       if (!confirm(`确定要提交所有答案吗？提交后将无法修改。`)) {
         return;
       }
-      
+
       // *** 优化 1: 停止计时器 ***
       stopTimer();
 
@@ -1366,7 +1662,10 @@
           yourAnswer: answer
         });
       });
-      
+
+      // *** 修正: 加上填空题得分 ***
+      score += (fbSelfScore || 0);
+
       // 获取最新的答题记录
       let allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
 
@@ -1380,42 +1679,45 @@
         totalPoints: currentPaper.totalPoints,
         submitTime: new Date().toLocaleString(),
         timeElapsed: secondsElapsed, // 记录耗时
-        isFirstSubmission: isFirstSubmission // 标记是否为首次提交
+        isFirstSubmission: isFirstSubmission, // 标记是否为首次提交
+        // 填空题数据
+        fillInBlankStudentImage: uploadedFbImage,
+        fillInBlankScore: fbSelfScore || 0
       };
-      
+
       allAnswers.push(answerRecord);
       await saveData(ANSWER_STORAGE_KEY, allAnswers);
       allAnswerRecords = allAnswers; // 更新缓存
 
-      
+
       let message = '';
       if (isFirstSubmission) {
-          // 只有首次提交才增加积分
-          // 确保学生积分数据是最新的
-          studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
-          studentPointsData[userId].points += score;
-          studentPointsData[userId].lastUpdate = new Date().toLocaleString();
-          await saveData(STUDENT_POINTS_KEY, studentPointsData);
-          userPoints = studentPointsData[userId].points; // 更新本地积分
-          message = `本次答题得分 **${score} 分** 已加入您的总积分！`;
+        // 只有首次提交才增加积分
+        // 确保学生积分数据是最新的
+        studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
+        studentPointsData[userId].points += score;
+        studentPointsData[userId].lastUpdate = new Date().toLocaleString();
+        await saveData(STUDENT_POINTS_KEY, studentPointsData);
+        userPoints = studentPointsData[userId].points; // 更新本地积分
+        message = `本次答题得分 **${score} 分** 已加入您的总积分！`;
       } else {
-          // 非首次提交，不增加积分
-          message = `您已提交过本套题，本次提交分数 **${score} 分** 不会增加积分。`;
+        // 非首次提交，不增加积分
+        message = `您已提交过本套题，本次提交分数 **${score} 分** 不会增加积分。`;
       }
-      
+
       // 关闭答题弹窗
       closeAnswerModal();
-      
+
       // 显示得分详情弹窗
       showScoreDetailModal(score, currentPaper.totalPoints, scoreDetails, message, secondsElapsed);
-      
+
       // *** 优化 2: 作答后重置输入和隐藏卡片 ***
       studentNameInput.value = '';
       studentIdInput.value = '';
       userPointsCard.classList.add('hidden');
       exchangeHistory.classList.add('hidden');
       examContainer.classList.add('hidden');
-      
+
       // 重置全局变量
       userName = '';
       userId = '';
@@ -1427,7 +1729,7 @@
       await loadAndRenderPapers(); // 刷新套卷列表，更新“已作答”状态
       updatePrizeButtons();
     }
-    
+
     // 显示得分详情弹窗
     function showScoreDetailModal(score, totalPoints, details, message, timeElapsed) {
       finalScoreDisplay.textContent = `${score}/${totalPoints}分`;
@@ -1457,19 +1759,19 @@
         `;
         scoreDetailList.appendChild(detailItem);
       });
-      
+
       scoreDetailModal.classList.remove('hidden');
       setTimeout(() => {
         scoreDetailContent.classList.remove('scale-95', 'opacity-0');
         scoreDetailContent.classList.add('scale-100', 'opacity-100');
       }, 10);
     }
-    
+
     // 关闭得分详情弹窗
     function closeScoreDetailModal() {
       scoreDetailContent.classList.remove('scale-100', 'opacity-100');
       scoreDetailContent.classList.add('scale-95', 'opacity-0');
-      
+
       setTimeout(() => {
         scoreDetailModal.classList.add('hidden');
       }, 300);
@@ -1479,17 +1781,61 @@
     function closeAnswerModal() {
       // 停止计时器（如果用户在未提交时关闭）
       stopTimer();
-      
+
+      // ... existing close logic ...
+      answerCardModal.classList.add('hidden');
       modalContent.classList.remove('scale-100', 'opacity-100');
       modalContent.classList.add('scale-95', 'opacity-0');
-      
+    }
+
+    // *** 图片预览功能 ***
+    function showImagePreview(src) {
+      if (!src) return;
+      const modal = document.getElementById('imagePreviewModal');
+      const img = document.getElementById('previewImage');
+
+      img.src = src;
+      modal.classList.remove('hidden');
+
+      // 动画
       setTimeout(() => {
-        answerCardModal.classList.add('hidden');
+        modal.classList.remove('opacity-0');
+        img.classList.remove('scale-95');
+        img.classList.add('scale-100');
+      }, 10);
+    }
+
+    function closeImagePreviewModal() {
+      const modal = document.getElementById('imagePreviewModal');
+      const img = document.getElementById('previewImage');
+
+      modal.classList.add('opacity-0');
+      img.classList.remove('scale-100');
+      img.classList.add('scale-95');
+
+      setTimeout(() => {
+        modal.classList.add('hidden');
       }, 300);
     }
-    
+
+
+
+
     // 页面加载完成后初始化
     window.addEventListener('DOMContentLoaded', init);
   </script>
+  <!-- 图片预览模态框 -->
+  <div id="imagePreviewModal"
+    class="fixed inset-0 bg-black bg-opacity-90 hidden items-center justify-center z-50 flex transition-opacity duration-300 opacity-0"
+    onclick="closeImagePreviewModal()">
+    <div class="relative w-full h-full p-4 flex items-center justify-center">
+      <button class="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 focus:outline-none z-50"
+        onclick="closeImagePreviewModal()">&times;</button>
+      <img id="previewImage" src=""
+        class="max-w-full max-h-full object-contain rounded shadow-2xl transform transition-transform duration-300 scale-95"
+        onclick="event.stopPropagation()">
+    </div>
+  </div>
 </body>
+
 </html>

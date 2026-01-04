@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +8,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  
+
   <script src="./js/localforage.min.js"></script>
-  
+
   <script>
     tailwind.config = {
       theme: {
@@ -25,33 +26,88 @@
     }
   </script>
   <style>
-    .fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .option-input { resize: none; height: 60px; }
-    .login-container { max-width: 400px; }
-    .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-    @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-3px); } 40%, 60% { transform: translateX(3px); } }
-    .tab-active { border-bottom: 3px solid #4F46E5; color: #4F46E5; font-weight: 600; }
+    .fade-in {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .option-input {
+      resize: none;
+      height: 60px;
+    }
+
+    .login-container {
+      max-width: 400px;
+    }
+
+    .shake {
+      animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+      10%,
+      90% {
+        transform: translateX(-1px);
+      }
+
+      20%,
+      80% {
+        transform: translateX(2px);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translateX(-3px);
+      }
+
+      40%,
+      60% {
+        transform: translateX(3px);
+      }
+    }
+
+    .tab-active {
+      border-bottom: 3px solid #4F46E5;
+      color: #4F46E5;
+      font-weight: 600;
+    }
   </style>
 </head>
+
 <body class="bg-gray-100 min-h-screen p-4 md:p-8">
   <div id="loginScreen" class="fixed inset-0 bg-gray-100 flex items-center justify-center z-50 p-4">
     <div class="login-container w-full bg-white rounded-xl shadow-lg p-8 fade-in">
       <h2 class="text-2xl font-bold text-center text-gray-800 mb-6 flex items-center justify-center">
         <i class="fa fa-lock text-purple-600 mr-3"></i> 管理员登录
       </h2>
-      
+
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-600 mb-1">管理员姓名 <span class="text-red-500">*</span></label>
-          <input type="text" id="adminName" placeholder="请输入管理员姓名" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <input type="text" id="adminName" placeholder="请输入管理员姓名"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-600 mb-1">密码 <span class="text-red-500">*</span></label>
-          <input type="password" id="adminPassword" placeholder="请输入密码" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <input type="password" id="adminPassword" placeholder="请输入密码"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
         </div>
         <div class="text-red-500 text-sm hidden" id="loginError">用户名或密码错误，请重试</div>
-        <button id="loginBtn" class="w-full mt-4 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center text-base">
+        <button id="loginBtn"
+          class="w-full mt-4 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center text-base">
           <i class="fa fa-sign-in mr-2"></i> 登录
         </button>
         <p class="text-center text-gray-500 text-sm mt-4">测试账号：admin | 密码：admin123</p>
@@ -64,7 +120,8 @@
       <h1 class="text-3xl font-bold text-gray-800 flex items-center">
         <i class="fa fa-cogs text-purple-600 mr-3"></i> 答题系统管理后台
       </h1>
-      <button id="logoutBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center">
+      <button id="logoutBtn"
+        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center">
         <i class="fa fa-sign-out mr-2"></i> 退出登录
       </button>
     </div>
@@ -82,9 +139,9 @@
         </button>
       </div>
     </div>
-    
+
     <div id="tabContent">
-      
+
       <div id="paper" class="tab-pane fade-in">
         <div class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
           <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
@@ -94,71 +151,135 @@
             <div class="space-y-4">
               <h3 class="text-lg font-medium text-gray-800">套卷信息</h3>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">所属年级 <span class="text-red-500">*</span></label>
-                <select id="paperGrade" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <label class="block text-sm font-medium text-gray-600 mb-1">所属年级 <span
+                    class="text-red-500">*</span></label>
+                <select id="paperGrade"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
                   <option value="grade1">高一</option>
                   <option value="grade2">高二</option>
                   <option value="grade3">高三</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">套卷名称 <span class="text-red-500">*</span></label>
-                <input type="text" id="paperName" placeholder="如：第一套海淀期末考试题" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <label class="block text-sm font-medium text-gray-600 mb-1">套卷名称 <span
+                    class="text-red-500">*</span></label>
+                <input type="text" id="paperName" placeholder="如：第一套海淀期末考试题"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">题目数量 <span class="text-red-500">*</span></label>
-                <input type="number" id="paperQuestionCount" min="1" max="50" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <label class="block text-sm font-medium text-gray-600 mb-1">选择题数量 <span
+                    class="text-red-500">*</span></label>
+                <input type="number" id="paperQuestionCount" min="1" max="50" value="5"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">单题分值 <span class="text-red-500">*</span></label>
-                <input type="number" id="paperQuestionPoints" min="1" max="20" value="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <label class="block text-sm font-medium text-gray-600 mb-1">选择题单题分值 <span
+                    class="text-red-500">*</span></label>
+                <input type="number" id="paperQuestionPoints" min="1" max="20" value="2"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+              </div>
+
+                <!-- <div class="space-y-4"> -->
+              <!-- <h3 class="text-lg font-medium text-gray-800">填空题配置</h3> -->
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">填空题数量</label>
+                <input type="number" id="paperFillBlankCount" min="0" max="20" value="0"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">填空题单题分值</label>
+                <input type="number" id="paperFillBlankPoints" min="1" max="20" value="5"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">填空题答案图片</label>
+                <label for="paperFillBlankAnswerImage" style="display: flex;flex-direction: column;align-items: center;">
+                    <i class="fa fa-light fa-upload text-blue-500 text-4xl"></i> <!-- 上传图标 -->
+                    <span style="font-size: 12px;">选择图片</span>
+                </label>
+                <input style="display: none;" type="file" id="paperFillBlankAnswerImage" accept="image/*"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-500 mt-1">请上传包含所有填空题答案的图片，学生提交后可查看此图片进行自判。</p>
+                <div id="previewContainer" class="hidden mt-2">
+                  <p class="text-xs text-gray-500 mb-1">预览 (点击放大):</p>
+                  <img id="answerImagePreview" src="" alt="答案预览"
+                    class="h-32 object-contain border rounded cursor-zoom-in hover:opacity-90 transition-opacity">
+                </div>
+              </div>
+            <!-- </div> -->
+            </div>
+
+                        <div class="space-y-4">
+              <h3 class="text-lg font-medium text-gray-800">选项模板</h3>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">选项A <span
+                    class="text-red-500">*</span></label>
+                <textarea id="optionA" placeholder="输入选项A内容"
+                  class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">选项B <span
+                    class="text-red-500">*</span></label>
+                <textarea id="optionB" placeholder="输入选项B内容"
+                  class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">选项C <span
+                    class="text-red-500">*</span></label>
+                <textarea id="optionC" placeholder="输入选项C内容"
+                  class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">选项D <span
+                    class="text-red-500">*</span></label>
+                <textarea id="optionD" placeholder="输入选项D内容"
+                  class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
               </div>
             </div>
 
             <div class="space-y-4">
               <h3 class="text-lg font-medium text-gray-800">正确答案（用于判分）</h3>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">第1题正确答案 <span class="text-red-500">*</span></label>
-                <select id="answer1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                <label class="block text-sm font-medium text-gray-600 mb-1">第1题正确答案 <span
+                    class="text-red-500">*</span></label>
+                <select id="answer1"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">第2题正确答案 <span class="text-red-500">*</span></label>
-                <select id="answer2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                <label class="block text-sm font-medium text-gray-600 mb-1">第2题正确答案 <span
+                    class="text-red-500">*</span></label>
+                <select id="answer2"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">第3题正确答案 <span class="text-red-500">*</span></label>
-                <select id="answer3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                <label class="block text-sm font-medium text-gray-600 mb-1">第3题正确答案 <span
+                    class="text-red-500">*</span></label>
+                <select id="answer3"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
                 </select>
               </div>
-              <div id="dynamicAnswers"></div> </div>
-
-            <div class="space-y-4">
-              <h3 class="text-lg font-medium text-gray-800">选项模板</h3>
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">选项A <span class="text-red-500">*</span></label>
-                <textarea id="optionA" placeholder="输入选项A内容" class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">选项B <span class="text-red-500">*</span></label>
-                <textarea id="optionB" placeholder="输入选项B内容" class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">选项C <span class="text-red-500">*</span></label>
-                <textarea id="optionC" placeholder="输入选项C内容" class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">选项D <span class="text-red-500">*</span></label>
-                <textarea id="optionD" placeholder="输入选项D内容" class="option-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
-              </div>
+              <div id="dynamicAnswers"></div>
             </div>
+
+
           </div>
 
-          <button id="addPaperBtn" class="mt-6 px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center text-base">
+          <button id="addPaperBtn"
+            class="mt-6 px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center text-base">
             <i class="fa fa-save mr-2"></i> 确认添加套卷
           </button>
         </div>
@@ -169,41 +290,49 @@
           </h2>
           <div class="grid md:grid-cols-3 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">奖品名称 <span class="text-red-500">*</span></label>
-              <input type="text" id="prizeName" placeholder="如：学习资料包" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <label class="block text-sm font-medium text-gray-600 mb-1">奖品名称 <span
+                  class="text-red-500">*</span></label>
+              <input type="text" id="prizeName" placeholder="如：学习资料包"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">所需积分 <span class="text-red-500">*</span></label>
-              <input type="number" id="prizePoints" min="100" value="500" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <label class="block text-sm font-medium text-gray-600 mb-1">所需积分 <span
+                  class="text-red-500">*</span></label>
+              <input type="number" id="prizePoints" min="100" value="500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">奖品描述</label>
-              <input type="text" id="prizeDesc" placeholder="如：精选编程学习资料" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <input type="text" id="prizeDesc" placeholder="如：精选编程学习资料"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
             </div>
           </div>
-          <button id="addPrizeBtn" class="mt-4 px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+          <button id="addPrizeBtn"
+            class="mt-4 px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
             <i class="fa fa-plus mr-2"></i> 添加奖品
           </button>
-          
+
           <div class="mt-6">
             <h3 class="text-lg font-medium mb-3">现有奖品</h3>
             <div id="prizeList" class="grid md:grid-cols-3 gap-4">
-              </div>
+            </div>
           </div>
         </div>
-        
+
         <div class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
           <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
             <i class="fa fa-exchange text-orange-500 mr-2"></i> 系统数据迁移（LocalForage 备份/恢复）
           </h2>
           <div class="flex flex-col md:flex-row gap-4 items-center">
-            <button id="exportAllDataBtn" class="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center">
+            <button id="exportAllDataBtn"
+              class="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center">
               <i class="fa fa-download mr-2"></i> 导出全部数据 (JSON)
             </button>
-            
+
             <div class="flex items-center space-x-3 w-full md:w-auto">
               <input type="file" id="importFileInput" accept=".json" class="hidden">
-              <button id="selectImportFileBtn" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center">
+              <button id="selectImportFileBtn"
+                class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center">
                 <i class="fa fa-upload mr-2"></i> 导入/恢复数据
               </button>
               <span id="importFileName" class="text-sm text-gray-500 truncate max-w-[150px]">未选择文件</span>
@@ -218,19 +347,21 @@
             <h3 class="text-lg font-bold mb-4 flex items-center">
               <i class="fa fa-book text-blue-500 mr-2"></i> 高一题库管理
             </h3>
-            <div id="grade1AddBtn" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
+            <div id="grade1AddBtn"
+              class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
               <i class="fa fa-plus text-purple-500 text-2xl mb-2"></i>
               <p class="text-gray-600">添加新套卷</p>
             </div>
             <div class="space-y-3 max-h-80 overflow-y-auto pr-2" id="grade1PaperList">
-              </div>
+            </div>
           </div>
 
           <div class="bg-white rounded-xl shadow-md p-6 fade-in">
             <h3 class="text-lg font-bold mb-4 flex items-center">
               <i class="fa fa-book text-blue-500 mr-2"></i> 高二题库管理
             </h3>
-            <div id="grade2AddBtn" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
+            <div id="grade2AddBtn"
+              class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
               <i class="fa fa-plus text-purple-500 text-2xl mb-2"></i>
               <p class="text-gray-600">添加新套卷</p>
             </div>
@@ -242,7 +373,8 @@
             <h3 class="text-lg font-bold mb-4 flex items-center">
               <i class="fa fa-book text-blue-500 mr-2"></i> 高三题库管理
             </h3>
-            <div id="grade3AddBtn" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
+            <div id="grade3AddBtn"
+              class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors mb-4">
               <i class="fa fa-plus text-purple-500 text-2xl mb-2"></i>
               <p class="text-gray-600">添加新套卷</p>
             </div>
@@ -251,32 +383,33 @@
           </div>
         </div>
       </div>
-      
+
       <div id="student" class="tab-pane hidden fade-in">
         <div class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
           <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
             <i class="fa fa-users text-primary mr-2"></i> 学生积分数据管理
-          </p>
-          <div class="flex justify-end mb-4">
-            <button id="exportStudentsBtn" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
-              <i class="fa fa-download mr-2"></i> 导出学生数据 (Excel)
-            </button>
-          </div>
-          <div class="max-h-[60vh] overflow-y-auto pr-2">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50 sticky top-0">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学号</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">当前积分</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上次更新</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                </tr>
-              </thead>
-              <tbody id="studentList" class="bg-white divide-y divide-gray-200">
+            </p>
+            <div class="flex justify-end mb-4">
+              <button id="exportStudentsBtn"
+                class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+                <i class="fa fa-download mr-2"></i> 导出学生数据 (Excel)
+              </button>
+            </div>
+            <div class="max-h-[60vh] overflow-y-auto pr-2">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学号</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">当前积分</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上次更新</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="studentList" class="bg-white divide-y divide-gray-200">
                 </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
         </div>
       </div>
 
@@ -287,7 +420,8 @@
               <i class="fa fa-trophy text-accent mr-2"></i> 积分排行榜
             </h2>
             <div class="flex justify-end mb-4">
-              <button id="exportRankingBtn" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+              <button id="exportRankingBtn"
+                class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
                 <i class="fa fa-download mr-2"></i> 导出排行榜 (Excel)
               </button>
             </div>
@@ -296,22 +430,24 @@
                 <thead class="bg-gray-50 sticky top-0">
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">排名</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名 (学号)</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名 (学号)
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">积分</th>
                   </tr>
                 </thead>
                 <tbody id="rankingTableBody" class="bg-white divide-y divide-gray-200">
-                  </tbody>
+                </tbody>
               </table>
             </div>
           </div>
-          
+
           <div class="bg-white rounded-xl shadow-md p-6 fade-in">
             <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
               <i class="fa fa-history text-primary mr-2"></i> 积分兑换记录
             </h2>
             <div class="flex justify-end mb-4">
-              <button id="exportExchangeBtn" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+              <button id="exportExchangeBtn"
+                class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
                 <i class="fa fa-download mr-2"></i> 导出兑换记录 (Excel)
               </button>
             </div>
@@ -319,25 +455,28 @@
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50 sticky top-0">
                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学生 (学号)</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学生 (学号)
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">奖品</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">消耗积分</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
                   </tr>
                 </thead>
                 <tbody id="exchangeHistoryTableBody" class="bg-white divide-y divide-gray-200">
-                  </tbody>
+                </tbody>
               </table>
             </div>
           </div>
         </div>
       </div>
-      
+
     </div>
   </div>
 
-  <div id="answerDetailModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
-    <div class="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 transform transition-all scale-95 opacity-0" id="detailModalContent">
+  <div id="answerDetailModal"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 transform transition-all scale-95 opacity-0"
+      id="detailModalContent">
       <div class="flex justify-between items-start mb-6">
         <h3 class="text-xl font-bold text-gray-800" id="detailPaperTitle">第一套海淀期末考试题 - 答题详情</h3>
         <button id="closeDetailModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -345,23 +484,34 @@
         </button>
       </div>
       <div id="answerDetailContent" class="max-h-96 overflow-y-auto pr-2">
-        </div>
+      </div>
     </div>
   </div>
-  
-  <div id="editPointsModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
-    <div class="bg-white rounded-xl p-8 max-w-sm w-full mx-4 transform transition-all scale-95 opacity-0" id="editPointsModalContent">
+
+  <div id="editPointsModal"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl p-8 max-w-sm w-full mx-4 transform transition-all scale-95 opacity-0"
+      id="editPointsModalContent">
       <h3 class="text-xl font-bold text-gray-800 mb-4">编辑积分</h3>
-      <p class="mb-4">正在编辑 <span id="editingStudentName" class="font-bold"></span> (学号: <span id="editingStudentId" class="font-bold"></span>) 的积分。</p>
-      
+      <p class="mb-4">正在编辑 <span id="editingStudentName" class="font-bold"></span> (学号: <span id="editingStudentId"
+          class="font-bold"></span>) 的积分。</p>
+
       <label class="block text-gray-700 mb-2">新积分值</label>
-      <input type="number" id="newPointsInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary/50" min="0">
-      
+      <input type="number" id="newPointsInput"
+        class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary/50"
+        min="0">
+
       <div class="flex justify-end space-x-3">
         <button id="cancelEditPoints" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">取消</button>
         <button id="saveEditPoints" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">保存</button>
       </div>
     </div>
+  </div>
+
+  <div id="imagePreviewModal"
+    class="fixed inset-0 bg-black/90 flex items-center justify-center hidden z-[60] backdrop-blur-sm cursor-zoom-out">
+    <img id="fullScreenPreviewImage" src="" alt="Full Preview"
+      class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl transform transition-transform scale-95 opacity-0">
   </div>
 
   <script>
@@ -378,35 +528,35 @@
       username: 'admin',
       password: 'admin123'
     };
-    
+
     // --- 数据存取工具函数 ---
-    
+
     // 使用 LocalForage 异步获取数据
     async function getData(key) {
-        // 由于 LocalForage 不支持直接存储布尔值，管理员登录状态仍然使用 localStorage
-        if (key === ADMIN_SESSION_KEY) {
-            return localStorage.getItem(key);
-        }
-        // 如果是导入导出操作需要获取全部键，则直接返回 LocalForage.getItem
-        return await localforage.getItem(key);
+      // 由于 LocalForage 不支持直接存储布尔值，管理员登录状态仍然使用 localStorage
+      if (key === ADMIN_SESSION_KEY) {
+        return localStorage.getItem(key);
+      }
+      // 如果是导入导出操作需要获取全部键，则直接返回 LocalForage.getItem
+      return await localforage.getItem(key);
     }
 
     // 使用 LocalForage 异步保存数据
     async function saveData(key, value) {
-        if (key === ADMIN_SESSION_KEY) {
-            localStorage.setItem(key, value);
-            return;
-        }
-        await localforage.setItem(key, value);
+      if (key === ADMIN_SESSION_KEY) {
+        localStorage.setItem(key, value);
+        return;
+      }
+      await localforage.setItem(key, value);
     }
 
     // 使用 LocalForage 异步移除数据
     async function removeData(key) {
-        if (key === ADMIN_SESSION_KEY) {
-            localStorage.removeItem(key);
-            return;
-        }
-        await localforage.removeItem(key);
+      if (key === ADMIN_SESSION_KEY) {
+        localStorage.removeItem(key);
+        return;
+      }
+      await localforage.removeItem(key);
     }
 
 
@@ -418,16 +568,24 @@
     const loginBtn = document.getElementById('loginBtn');
     const loginError = document.getElementById('loginError');
     const logoutBtn = document.getElementById('logoutBtn');
-    
+
     // Tab元素
     const tabButtons = document.querySelectorAll('.bg-white.rounded-xl.shadow-md.p-4.mb-8 button');
     const tabPanes = document.querySelectorAll('.tab-pane');
-    
+
     // 题库管理元素
     const paperGrade = document.getElementById('paperGrade');
     const paperName = document.getElementById('paperName');
     const paperQuestionCount = document.getElementById('paperQuestionCount');
     const paperQuestionPoints = document.getElementById('paperQuestionPoints');
+    // 填空题元素
+    const paperFillBlankCount = document.getElementById('paperFillBlankCount');
+    const paperFillBlankPoints = document.getElementById('paperFillBlankPoints');
+    const paperFillBlankAnswerImage = document.getElementById('paperFillBlankAnswerImage');
+    const previewContainer = document.getElementById('previewContainer');
+    const answerImagePreview = document.getElementById('answerImagePreview');
+    const imagePreviewModal = document.getElementById('imagePreviewModal');
+    const fullScreenPreviewImage = document.getElementById('fullScreenPreviewImage');
     const optionA = document.getElementById('optionA');
     const optionB = document.getElementById('optionB');
     const optionC = document.getElementById('optionC');
@@ -447,13 +605,13 @@
     const prizeDesc = document.getElementById('prizeDesc');
     const addPrizeBtn = document.getElementById('addPrizeBtn');
     const prizeList = document.getElementById('prizeList');
-    
+
     // *** 新增导入导出元素 ***
     const exportAllDataBtn = document.getElementById('exportAllDataBtn');
     const selectImportFileBtn = document.getElementById('selectImportFileBtn');
     const importFileInput = document.getElementById('importFileInput');
     const importFileName = document.getElementById('importFileName');
-    
+
     // 答题详情弹窗元素
     const answerDetailModal = document.getElementById('answerDetailModal');
     const detailModalContent = document.getElementById('detailModalContent');
@@ -498,14 +656,14 @@
     async function handleLogin() {
       const name = adminName.value.trim();
       const password = adminPassword.value.trim();
-      
+
       loginError.classList.add('hidden');
-      
+
       if (!name || !password) {
         showLoginError('请输入完整的用户名和密码');
         return;
       }
-      
+
       if (name === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
         await saveData(ADMIN_SESSION_KEY, 'true');
         showMainContent();
@@ -551,7 +709,7 @@
 
       document.getElementById(targetTabId).classList.remove('hidden');
       document.querySelector(`[data-tab="${targetTabId}"]`).classList.add('tab-active');
-      
+
       // 每次切换Tab时刷新对应数据
       if (targetTabId === 'student') {
         loadStudentPointsList();
@@ -579,13 +737,13 @@
       tabButtons.forEach(btn => {
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
       });
-      
+
       // 初始化奖品管理
       initPrizeManagement();
-      
+
       // 初始化学生/积分管理
       initStudentManagement();
-      
+
       // 初始化排行榜/兑换记录管理
       initRankingManagement();
 
@@ -593,11 +751,11 @@
       exportAllDataBtn.addEventListener('click', exportAllData);
       selectImportFileBtn.addEventListener('click', () => importFileInput.click());
       importFileInput.addEventListener('change', importAllData);
-      
+
       // 移除原有的 localStorage 监听器，因为 LocalForage 不会触发 'storage' 事件
       // 跨标签页同步依赖于用户在切换Tab时手动刷新数据，或者复杂的IndexedDB监听API，此处保持原逻辑
     }
-    
+
     // *** 新增：导出全部数据的函数 ***
     async function exportAllData() {
       if (!confirm('确定要导出所有系统数据吗？这将备份套卷、积分、答题记录等全部数据。')) {
@@ -607,7 +765,7 @@
       try {
         const keys = [PAPER_STORAGE_KEY, ANSWER_STORAGE_KEY, PRIZES_STORAGE_KEY, STUDENT_POINTS_KEY, EXCHANGE_RECORDS_KEY];
         const allData = {};
-        
+
         for (const key of keys) {
           allData[key] = await getData(key);
         }
@@ -616,14 +774,14 @@
         const blob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        
+
         a.href = url;
         a.download = `quiz_system_backup_${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         alert('数据导出成功！请妥善保管下载的 JSON 文件。');
       } catch (error) {
         console.error('导出数据失败:', error);
@@ -645,12 +803,12 @@
       }
 
       const reader = new FileReader();
-      reader.onload = async function(e) {
+      reader.onload = async function (e) {
         try {
           const importedData = JSON.parse(e.target.result);
           const keys = [PAPER_STORAGE_KEY, ANSWER_STORAGE_KEY, PRIZES_STORAGE_KEY, STUDENT_POINTS_KEY, EXCHANGE_RECORDS_KEY];
           let importCount = 0;
-          
+
           for (const key of keys) {
             if (importedData.hasOwnProperty(key)) {
               await saveData(key, importedData[key]);
@@ -660,12 +818,12 @@
 
           alert(`数据导入成功！共导入/覆盖了 ${importCount} 个数据集合。页面即将刷新。`);
           window.location.reload();
-          
+
         } catch (error) {
           console.error('导入文件解析失败:', error);
           alert('导入数据失败。文件格式不正确或内容被篡改。');
         } finally {
-          importFileInput.value = ''; 
+          importFileInput.value = '';
           importFileName.textContent = '未选择文件';
         }
       };
@@ -726,7 +884,7 @@
       if (!await getData(STUDENT_POINTS_KEY)) {
         await saveData(STUDENT_POINTS_KEY, {});
       }
-       // 兑换记录默认
+      // 兑换记录默认
       if (!await getData(EXCHANGE_RECORDS_KEY)) {
         await saveData(EXCHANGE_RECORDS_KEY, []);
       }
@@ -737,7 +895,7 @@
       const count = parseInt(paperQuestionCount.value) || 1;
       // 清空从第4题开始的答案
       dynamicAnswers.innerHTML = '';
-      
+
       for (let i = 4; i <= count; i++) {
         const answerDiv = document.createElement('div');
         answerDiv.innerHTML = `
@@ -772,18 +930,18 @@
       const optionBVal = optionB.value.trim();
       const optionCVal = optionC.value.trim();
       const optionDVal = optionD.value.trim();
-      
+
       // 验证必填项
       if (!name || !questionCount || !singlePoints) {
         alert('请填写套卷名称、题目数量和单题分值');
         return;
       }
-      
+
       if (!optionAVal || !optionBVal || !optionCVal || !optionDVal) {
         alert('请填写所有选项内容');
         return;
       }
-      
+
       // 收集答案
       const answers = [];
       for (let i = 1; i <= questionCount; i++) {
@@ -795,7 +953,28 @@
         }
         answers.push(answer);
       }
-      
+
+      // 收集填空题数据
+      const fillBlankCount = parseInt(paperFillBlankCount.value) || 0;
+      const fillBlankPoints = parseInt(paperFillBlankPoints.value) || 0;
+      let fillBlankImageBase64 = null;
+
+      if (fillBlankCount > 0) {
+        if (!paperFillBlankAnswerImage.files || paperFillBlankAnswerImage.files.length === 0) {
+          alert('设置了填空题数量，请上传填空题答案图片');
+          return;
+        }
+
+        // 读取图片转Base64
+        try {
+          fillBlankImageBase64 = await getBase64(paperFillBlankAnswerImage.files[0]);
+        } catch (e) {
+          alert('图片处理失败，请重试');
+          console.error(e);
+          return;
+        }
+      }
+
       // 创建新套卷
       const newPaper = {
         id: 'p' + Date.now(),
@@ -803,7 +982,12 @@
         name,
         questionCount,
         singlePoints,
-        totalPoints: questionCount * singlePoints,
+        // 填空题数据
+        fillInBlankCount: fillBlankCount,
+        fillInBlankPoints: fillBlankPoints,
+        fillInBlankAnswerImage: fillBlankImageBase64,
+        // 总分 = 选择题总分 + 填空题总分
+        totalPoints: (questionCount * singlePoints) + (fillBlankCount * fillBlankPoints),
         answers,
         options: {
           A: optionAVal,
@@ -813,19 +997,24 @@
         },
         createTime: new Date().toLocaleString()
       };
-      
+
       // 保存到 LocalForage
       const papers = await getData(PAPER_STORAGE_KEY) || [];
       papers.push(newPaper);
       await saveData(PAPER_STORAGE_KEY, papers);
-      
+
       // 刷新套卷列表
       renderAllPaperLists();
-      
+
       // 重置表单
       paperName.value = '';
       paperQuestionCount.value = '5';
       paperQuestionPoints.value = '2';
+      paperFillBlankCount.value = '0';
+      paperFillBlankPoints.value = '5';
+      paperFillBlankAnswerImage.value = ''; // 清空文件选择
+      previewContainer.classList.add('hidden'); // 隐藏预览
+      answerImagePreview.src = '';
       generateAnswerSelects(); // 刷新答案选择框
       document.getElementById('answer1').value = 'A';
       document.getElementById('answer2').value = 'A';
@@ -834,19 +1023,19 @@
       optionB.value = '';
       optionC.value = '';
       optionD.value = '';
-      
+
       alert('套卷添加成功，已同步到学生端！');
     }
 
     // 渲染所有年级的套卷列表
     async function renderAllPaperLists() {
       const papers = await getData(PAPER_STORAGE_KEY) || [];
-      
+
       // 按年级过滤
       const grade1Papers = papers.filter(p => p.grade === 'grade1');
       const grade2Papers = papers.filter(p => p.grade === 'grade2');
       const grade3Papers = papers.filter(p => p.grade === 'grade3');
-      
+
       // 渲染各年级套卷
       renderPaperList(grade1PaperList, grade1Papers);
       renderPaperList(grade2PaperList, grade2Papers);
@@ -856,12 +1045,12 @@
     // 渲染单个年级的套卷列表
     async function renderPaperList(container, papers) {
       container.innerHTML = '';
-      
+
       if (papers.length === 0) {
         container.innerHTML = '<div class="text-center text-gray-500 py-4">暂无套卷</div>';
         return;
       }
-      
+
       // 异步获取答题数据
       const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
 
@@ -869,11 +1058,11 @@
         // 获取该套卷的答题记录数量
         const paperAnswers = allAnswers.filter(a => a.paperId === paper.id);
         const answerCount = paperAnswers.length;
-        
+
         // 计算平均分
         const totalScores = paperAnswers.reduce((sum, item) => sum + item.score, 0);
         const avgScore = answerCount > 0 ? (totalScores / answerCount).toFixed(1) : 'N/A';
-        
+
         const paperItem = document.createElement('div');
         paperItem.className = 'border rounded-lg p-3 bg-white hover:shadow-md transition-shadow';
         paperItem.innerHTML = `
@@ -897,17 +1086,17 @@
             </div>
           </div>
         `;
-        
+
         container.appendChild(paperItem);
-        
+
         // 绑定查看答题详情事件
-        paperItem.querySelector('.view-answers').addEventListener('click', function() {
+        paperItem.querySelector('.view-answers').addEventListener('click', function () {
           const paperId = this.dataset.id;
           showAnswerDetails(paperId);
         });
-        
+
         // 绑定删除套卷事件
-        paperItem.querySelector('.delete-paper').addEventListener('click', function() {
+        paperItem.querySelector('.delete-paper').addEventListener('click', function () {
           const paperId = this.dataset.id;
           if (confirm(`确定要删除套卷"${paper.name}"吗？相关答题数据也将被删除。`)) {
             deletePaper(paperId);
@@ -922,12 +1111,12 @@
       let papers = await getData(PAPER_STORAGE_KEY) || [];
       papers = papers.filter(p => p.id !== paperId);
       await saveData(PAPER_STORAGE_KEY, papers);
-      
+
       // 删除相关答题数据
       let answers = await getData(ANSWER_STORAGE_KEY) || [];
       answers = answers.filter(a => a.paperId !== paperId);
       await saveData(ANSWER_STORAGE_KEY, answers);
-      
+
       // 刷新套卷列表
       renderAllPaperLists();
     }
@@ -939,22 +1128,22 @@
       const paper = papers.find(p => p.id === paperId);
       const answers = await getData(ANSWER_STORAGE_KEY) || [];
       const paperAnswers = answers.filter(a => a.paperId === paperId);
-      
+
       if (!paper) return;
-      
+
       // 更新弹窗标题
       detailPaperTitle.textContent = `${paper.name} - 答题详情 (共${paperAnswers.length}人参与)`;
-      
+
       // 生成详情内容
       let content = '';
-      
+
       if (paperAnswers.length === 0) {
         content = '<div class="text-center text-gray-500 py-6">暂无答题记录</div>';
       } else {
         // 计算平均分
         const totalScores = paperAnswers.reduce((sum, item) => sum + item.score, 0);
         const avgScore = (totalScores / paperAnswers.length).toFixed(1);
-        
+
         content = `
           <div class="bg-blue-50 p-4 rounded-lg mb-6">
             <div class="flex justify-between">
@@ -965,7 +1154,7 @@
           
           <div class="space-y-4">
         `;
-        
+
         // 生成每个学生的答题记录
         paperAnswers.forEach((answer, index) => {
           // 格式化耗时
@@ -991,27 +1180,27 @@
               
               <div class="space-y-2 mt-2 text-sm">
                 ${answer.answers.map((ans, i) => {
-                  const isCorrect = ans === paper.answers[i];
-                  return `
+            const isCorrect = ans === paper.answers[i];
+            return `
                     <div class="flex items-center ${isCorrect ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'} p-2 rounded">
-                      <span class="w-16">第${i+1}题：</span>
+                      <span class="w-16">第${i + 1}题：</span>
                       <span>你的答案：${ans}</span>
                       <span class="mx-2">|</span>
                       <span>正确答案：${paper.answers[i]}</span>
                     </div>
                   `;
-                }).join('')}
+          }).join('')}
               </div>
             </div>
           `;
         });
-        
+
         content += `</div>`;
       }
-      
+
       // 更新弹窗内容
       answerDetailContent.innerHTML = content;
-      
+
       // 显示弹窗
       answerDetailModal.classList.remove('hidden');
       setTimeout(() => {
@@ -1024,7 +1213,7 @@
     function closeDetailModal() {
       detailModalContent.classList.remove('scale-100', 'opacity-100');
       detailModalContent.classList.add('scale-95', 'opacity-0');
-      
+
       setTimeout(() => {
         answerDetailModal.classList.add('hidden');
         currentViewingPaperId = null;
@@ -1041,12 +1230,12 @@
     async function loadPrizes() {
       const prizes = await getData(PRIZES_STORAGE_KEY) || [];
       prizeList.innerHTML = '';
-      
+
       if (prizes.length === 0) {
         prizeList.innerHTML = '<div class="col-span-3 text-center text-gray-500 py-4">暂无奖品，请添加</div>';
         return;
       }
-      
+
       prizes.forEach(prize => {
         const prizeCard = document.createElement('div');
         prizeCard.className = 'border rounded-lg p-4';
@@ -1061,9 +1250,9 @@
           </div>
         `;
         prizeList.appendChild(prizeCard);
-        
+
         // 绑定删除事件
-        prizeCard.querySelector('.delete-prize').addEventListener('click', function() {
+        prizeCard.querySelector('.delete-prize').addEventListener('click', function () {
           const prizeId = this.dataset.id;
           if (confirm(`确定要删除${prize.name}吗？`)) {
             deletePrize(prizeId);
@@ -1077,12 +1266,12 @@
       const name = prizeName.value.trim();
       const points = parseInt(prizePoints.value);
       const desc = prizeDesc.value.trim();
-      
+
       if (!name || !points) {
         alert('请填写奖品名称和所需积分');
         return;
       }
-      
+
       const prizes = await getData(PRIZES_STORAGE_KEY) || [];
       const newPrize = {
         id: 'prize_' + Date.now(),
@@ -1093,15 +1282,15 @@
         iconColor: 'text-primary',
         bgColor: 'bg-blue-100'
       };
-      
+
       prizes.push(newPrize);
       await saveData(PRIZES_STORAGE_KEY, prizes);
-      
+
       // 清空表单
       prizeName.value = '';
       prizePoints.value = '500';
       prizeDesc.value = '';
-      
+
       loadPrizes();
       alert('奖品添加成功，学生端已同步更新');
     }
@@ -1113,7 +1302,7 @@
       await saveData(PRIZES_STORAGE_KEY, prizes);
       loadPrizes();
     }
-    
+
     // --- 学生/积分管理功能 ---
     function initStudentManagement() {
       loadStudentPointsList();
@@ -1121,14 +1310,14 @@
       cancelEditPoints.addEventListener('click', closeEditPointsModal);
       saveEditPoints.addEventListener('click', saveStudentPoints);
     }
-    
+
     // 加载学生积分列表
     async function loadStudentPointsList() {
       const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
       const studentsArray = Object.values(studentPoints);
-      
+
       studentList.innerHTML = '';
-      
+
       if (studentsArray.length === 0) {
         studentList.innerHTML = `
           <tr>
@@ -1139,7 +1328,7 @@
         `;
         return;
       }
-      
+
       studentsArray.forEach(student => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -1155,23 +1344,23 @@
         `;
         studentList.appendChild(row);
       });
-      
+
       // 绑定编辑积分事件
       document.querySelectorAll('.edit-points-btn').forEach(btn => {
         btn.addEventListener('click', openEditPointsModal);
       });
     }
-    
+
     // 打开积分编辑弹窗
     function openEditPointsModal() {
       currentEditingStudentId = this.dataset.id;
       const studentName = this.dataset.name;
       const currentPoints = this.dataset.points;
-      
+
       editingStudentName.textContent = studentName;
       editingStudentId.textContent = this.dataset.id;
       newPointsInput.value = currentPoints;
-      
+
       editPointsModal.classList.remove('hidden');
       setTimeout(() => {
         editPointsModalContent.classList.remove('scale-95', 'opacity-0');
@@ -1179,7 +1368,7 @@
         newPointsInput.focus();
       }, 10);
     }
-    
+
     // 关闭积分编辑弹窗
     function closeEditPointsModal() {
       editPointsModalContent.classList.remove('scale-100', 'opacity-100');
@@ -1189,24 +1378,24 @@
         currentEditingStudentId = null;
       }, 300);
     }
-    
+
     // 保存修改后的积分
     async function saveStudentPoints() {
       if (!currentEditingStudentId) return;
-      
+
       const newPoints = parseInt(newPointsInput.value);
       if (isNaN(newPoints) || newPoints < 0) {
         alert('请输入有效的积分值');
         return;
       }
-      
+
       const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
-      
+
       if (studentPoints[currentEditingStudentId]) {
         studentPoints[currentEditingStudentId].points = newPoints;
         studentPoints[currentEditingStudentId].lastUpdate = new Date().toLocaleString() + ' (Admin Edit)';
         await saveData(STUDENT_POINTS_KEY, studentPoints);
-        
+
         loadStudentPointsList(); // 刷新列表
         closeEditPointsModal();
         alert(`学生 ${studentPoints[currentEditingStudentId].name} 的积分已更新为 ${newPoints} 分`);
@@ -1214,7 +1403,7 @@
         alert('未找到该学生数据');
       }
     }
-    
+
     // 导出学生数据
     async function exportStudentData() {
       const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
@@ -1231,10 +1420,10 @@
         当前积分: s.points,
         上次更新时间: s.lastUpdate
       }));
-      
+
       exportToExcel(data, '学生积分数据');
     }
-    
+
     // --- 排行榜/兑换记录功能 ---
     function initRankingManagement() {
       loadRankingData();
@@ -1248,9 +1437,9 @@
       const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
       let studentsArray = Object.values(studentPoints);
       studentsArray.sort((a, b) => b.points - a.points); // 降序排序
-      
+
       rankingTableBody.innerHTML = '';
-      
+
       if (studentsArray.length === 0) {
         rankingTableBody.innerHTML = `
           <tr>
@@ -1259,7 +1448,7 @@
         `;
         return;
       }
-      
+
       studentsArray.forEach((student, index) => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -1275,7 +1464,7 @@
     async function loadExchangeHistoryData() {
       const exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
       exchangeHistoryTableBody.innerHTML = '';
-      
+
       if (exchangeRecords.length === 0) {
         exchangeHistoryTableBody.innerHTML = `
           <tr>
@@ -1284,7 +1473,7 @@
         `;
         return;
       }
-      
+
       exchangeRecords.forEach(record => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -1302,7 +1491,7 @@
       const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
       let studentsArray = Object.values(studentPoints);
       studentsArray.sort((a, b) => b.points - a.points);
-      
+
       if (studentsArray.length === 0) {
         alert('无排行榜数据可导出');
         return;
@@ -1314,14 +1503,14 @@
         学号: s.id,
         当前积分: s.points
       }));
-      
+
       exportToExcel(data, '积分排行榜');
     }
 
     // 导出兑换记录
     async function exportExchangeData() {
       const exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
-      
+
       if (exchangeRecords.length === 0) {
         alert('无兑换记录可导出');
         return;
@@ -1334,7 +1523,7 @@
         消耗积分: r.points,
         兑换时间: r.time
       }));
-      
+
       exportToExcel(data, '积分兑换记录');
     }
 
@@ -1346,8 +1535,56 @@
       XLSX.writeFile(wb, `${fileName}_${new Date().toLocaleDateString()}.xlsx`);
     }
 
+    // 辅助函数：文件转Base64
+    function getBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+    }
+
     // 页面加载完成后初始化
-    window.addEventListener('DOMContentLoaded', init);
+    window.addEventListener('DOMContentLoaded', () => {
+      init();
+
+      // 绑定图片预览逻辑
+      paperFillBlankAnswerImage.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            answerImagePreview.src = e.target.result;
+            previewContainer.classList.remove('hidden');
+          }
+          reader.readAsDataURL(file);
+        } else {
+          previewContainer.classList.add('hidden');
+          answerImagePreview.src = '';
+        }
+      });
+
+      // 绑定点击放大逻辑
+      answerImagePreview.addEventListener('click', function () {
+        fullScreenPreviewImage.src = this.src;
+        imagePreviewModal.classList.remove('hidden');
+        setTimeout(() => {
+          fullScreenPreviewImage.classList.remove('scale-95', 'opacity-0');
+          fullScreenPreviewImage.classList.add('scale-100', 'opacity-100');
+        }, 10);
+      });
+
+      // 绑定关闭大图逻辑
+      imagePreviewModal.addEventListener('click', function () {
+        fullScreenPreviewImage.classList.remove('scale-100', 'opacity-100');
+        fullScreenPreviewImage.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+          imagePreviewModal.classList.add('hidden');
+        }, 300);
+      });
+    });
   </script>
 </body>
+
 </html>
