@@ -179,7 +179,7 @@
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
               </div>
 
-                <!-- <div class="space-y-4"> -->
+              <!-- <div class="space-y-4"> -->
               <!-- <h3 class="text-lg font-medium text-gray-800">填空题配置</h3> -->
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">填空题数量</label>
@@ -193,9 +193,10 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">填空题答案图片</label>
-                <label for="paperFillBlankAnswerImage" style="display: flex;flex-direction: column;align-items: center;">
-                    <i class="fa fa-light fa-upload text-blue-500 text-4xl"></i> <!-- 上传图标 -->
-                    <span style="font-size: 12px;">选择图片</span>
+                <label for="paperFillBlankAnswerImage"
+                  style="display: flex;flex-direction: column;align-items: center;">
+                  <i class="fa fa-light fa-upload text-blue-500 text-4xl"></i> <!-- 上传图标 -->
+                  <span style="font-size: 12px;">选择图片</span>
                 </label>
                 <input style="display: none;" type="file" id="paperFillBlankAnswerImage" accept="image/*"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
@@ -206,10 +207,10 @@
                     class="h-32 object-contain border rounded cursor-zoom-in hover:opacity-90 transition-opacity">
                 </div>
               </div>
-            <!-- </div> -->
+              <!-- </div> -->
             </div>
 
-                        <div class="space-y-4">
+            <div class="space-y-4">
               <h3 class="text-lg font-medium text-gray-800">选项模板</h3>
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">选项A <span
@@ -1163,6 +1164,36 @@
           const seconds = String(timeElapsed % 60).padStart(2, '0');
           const timeDisplay = `${minutes}:${seconds}`;
 
+          // 构建填空题HTML (如果存在)
+          let fillBlankHtml = '';
+          if (paper.fillInBlankCount > 0 && answer.fillInBlankStudentImage) {
+            const fbScore = answer.fillInBlankScore || 0;
+            fillBlankHtml = `
+              <div class="mt-4 pt-4 border-t border-gray-100">
+                <div class="flex justify-between items-center mb-3">
+                    <h5 class="font-bold text-gray-700">填空题详情</h5>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-600">填空题得分: ${fbScore}分</span>
+                        <button onclick="modifyFillBlankScore('${answer.studentId}', null, ${paper.fillInBlankCount * paper.fillInBlankPoints})" 
+                            class="text-xs bg-primary text-white px-2 py-1 rounded hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-pencil"></i> 修改分数
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="border rounded p-2">
+                        <p class="text-xs text-center text-gray-500 mb-1">学生答卷</p>
+                        <img src="${answer.fillInBlankStudentImage}" class="w-full h-32 object-contain cursor-zoom-in hover:opacity-90" onclick="showAdminImagePreview(this.src)">
+                    </div>
+                    <div class="border rounded p-2 bg-green-50">
+                        <p class="text-xs text-center text-green-600 mb-1">参考答案</p>
+                        <img src="${paper.fillInBlankAnswerImage || ''}" class="w-full h-32 object-contain cursor-zoom-in hover:opacity-90" onclick="showAdminImagePreview(this.src)">
+                    </div>
+                </div>
+              </div>
+            `;
+          }
+
           content += `
             <div class="border rounded-lg p-4">
               <div class="flex justify-between items-start mb-3">
@@ -1191,6 +1222,7 @@
                   `;
           }).join('')}
               </div>
+              ${fillBlankHtml}
             </div>
           `;
         });
@@ -1218,6 +1250,76 @@
         answerDetailModal.classList.add('hidden');
         currentViewingPaperId = null;
       }, 300);
+    }
+
+    // 显示大图预览 (Admin端复用)
+    function showAdminImagePreview(src) {
+      if (!src) return;
+      const modal = document.getElementById('imagePreviewModal');
+      const img = document.getElementById('fullScreenPreviewImage');
+      img.src = src;
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        img.classList.remove('scale-95', 'opacity-0');
+        img.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    // 修改填空题分数
+    async function modifyFillBlankScore(studentId, timeElapsedKey, maxPoints) {
+      const newScoreStr = prompt(`请输入新的填空题得分 (0 - ${maxPoints}):`);
+      if (newScoreStr === null) return;
+
+      const newScore = parseInt(newScoreStr);
+      if (isNaN(newScore) || newScore < 0 || newScore > maxPoints) {
+        alert('请输入有效的分数');
+        return;
+      }
+
+      try {
+        const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+        let targetRecordIndex = -1;
+        // 优先找 isFirstSubmission 的
+        targetRecordIndex = allAnswers.findIndex(a => a.paperId === currentViewingPaperId && a.studentId === studentId && a.isFirstSubmission);
+
+        if (targetRecordIndex === -1) {
+          targetRecordIndex = allAnswers.findIndex(a => a.paperId === currentViewingPaperId && a.studentId === studentId);
+        }
+
+        if (targetRecordIndex !== -1) {
+          const record = allAnswers[targetRecordIndex];
+          const oldFbScore = record.fillInBlankScore || 0;
+          const diff = newScore - oldFbScore;
+
+          // 更新记录
+          record.fillInBlankScore = newScore;
+          record.score += diff; // 总分同步更新
+          // 确保分数不超过总分
+          // record.score = Math.min(record.score, /* need paper total points here, complicates things */); 
+          // 简化：假设 modifying is always valid logic
+
+          await saveData(ANSWER_STORAGE_KEY, allAnswers);
+
+          // 如果是首次提交，更新学生总积分
+          if (record.isFirstSubmission) {
+            const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
+            if (studentPoints[studentId]) {
+              studentPoints[studentId].points += diff;
+              studentPoints[studentId].lastUpdate = new Date().toLocaleString() + ' (Teacher Cor)';
+              await saveData(STUDENT_POINTS_KEY, studentPoints);
+            }
+          }
+
+          alert('分数修改成功！');
+          showAnswerDetails(currentViewingPaperId); // 刷新显示
+
+        } else {
+          alert('未找到该学生的答题记录');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('修改失败');
+      }
     }
 
     // --- 奖品管理功能 ---
