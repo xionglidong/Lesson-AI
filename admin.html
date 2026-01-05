@@ -490,7 +490,7 @@
   </div>
 
   <div id="answerDetailModal"
-    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-[60] backdrop-blur-sm">
     <div class="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 transform transition-all scale-95 opacity-0"
       id="detailModalContent">
       <div class="flex justify-between items-start mb-6">
@@ -551,6 +551,23 @@
   </div>
 
   <!-- 数据分析弹窗 -->
+  <div id="studentHistoryModal"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 transform transition-all scale-95 opacity-0"
+      id="studentHistoryModalContent">
+      <div class="flex justify-between items-start mb-6">
+        <h3 class="text-xl font-bold text-gray-800" id="studentHistoryModalTitle">学生答题记录</h3>
+        <button id="closeStudentHistoryModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="max-h-[60vh] overflow-y-auto pr-2" id="studentHistoryList">
+        <!-- Content will be injected here -->
+      </div>
+    </div>
+  </div>
+
   <div id="analysisModal"
     class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
     <div
@@ -1236,17 +1253,26 @@
     }
 
     // 显示答题详情
-    async function showAnswerDetails(paperId) {
+    async function showAnswerDetails(paperId, targetStudentId = null) {
       currentViewingPaperId = paperId;
       const papers = await getData(PAPER_STORAGE_KEY) || [];
       const paper = papers.find(p => p.id === paperId);
       const answers = await getData(ANSWER_STORAGE_KEY) || [];
-      const paperAnswers = answers.filter(a => a.paperId === paperId);
+      let paperAnswers = answers.filter(a => a.paperId === paperId);
+
+      // 如果指定了 specific student，进行过滤
+      if (targetStudentId) {
+        paperAnswers = paperAnswers.filter(a => a.studentId === targetStudentId);
+      }
 
       if (!paper) return;
 
       // 更新弹窗标题
-      detailPaperTitle.textContent = `${paper.name} - 答题详情 (共${paperAnswers.length}人参与)`;
+      if (targetStudentId && paperAnswers.length > 0) {
+        detailPaperTitle.textContent = `${paperAnswers[0].studentName} - ${paper.name} 答题详情`;
+      } else {
+        detailPaperTitle.textContent = `${paper.name} - 答题详情 (共${paperAnswers.length}人参与)`;
+      }
 
       // 生成详情内容
       let content = '';
@@ -1308,34 +1334,52 @@
           }
 
           content += `
-            <div class="border rounded-lg p-4">
-              <div class="flex justify-between items-start mb-3">
-                <div>
-                  <p class="font-medium">${answer.studentName} (学号: ${answer.studentId})</p>
-                  <p class="text-sm text-gray-500">提交于 ${answer.submitTime}</p>
+            <div class="border rounded-lg bg-white overflow-hidden transition-all duration-200">
+              <!-- 折叠头部 (点击区域) -->
+              <div class="p-4 bg-gray-50 cursor-pointer flex justify-between items-center hover:bg-gray-100 transition-colors" 
+                   onclick="document.getElementById('detail-body-${index}').classList.toggle('hidden'); 
+                            this.querySelector('.fa-chevron-down').classList.toggle('rotate-180');">
+                <div class="flex items-center space-x-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 text-primary flex items-center justify-center font-bold text-sm">
+                        ${index + 1}
+                    </div>
+                    <div>
+                      <p class="font-bold text-gray-800">${answer.studentName}</p>
+                      <p class="text-xs text-gray-500">学号: ${answer.studentId}</p>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-xl font-bold ${answer.score === paper.totalPoints ? 'text-green-500' : 'text-purple-500'}">
-                        ${answer.score}/${paper.totalPoints}分
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">耗时: ${timeDisplay}</p>
+                
+                <div class="flex items-center space-x-6">
+                    <div class="text-right">
+                         <span class="block text-lg font-bold ${answer.score === paper.totalPoints ? 'text-green-500' : 'text-purple-500'}">
+                            ${answer.score} <span class="text-sm text-gray-400 font-normal">/${paper.totalPoints}分</span>
+                        </span>
+                        <span class="text-xs text-gray-500">耗时: ${timeDisplay}</span>
+                    </div>
+                    <i class="fa fa-chevron-down text-gray-400 transition-transform duration-200"></i>
                 </div>
               </div>
               
-              <div class="space-y-2 mt-2 text-sm">
-                ${answer.answers.map((ans, i) => {
+              <!-- 折叠内容 -->
+              <div id="detail-body-${index}" class="hidden p-4 border-t border-gray-100 bg-white">
+                  <div class="space-y-2 mt-2 text-sm">
+                    ${answer.answers.map((ans, i) => {
             const isCorrect = ans === paper.answers[i];
             return `
-                    <div class="flex items-center ${isCorrect ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'} p-2 rounded">
-                      <span class="w-16">第${i + 1}题：</span>
-                      <span>你的答案：${ans}</span>
-                      <span class="mx-2">|</span>
-                      <span>正确答案：${paper.answers[i]}</span>
-                    </div>
-                  `;
+                        <div class="flex items-center ${isCorrect ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'} p-2 rounded">
+                          <span class="w-16 font-bold">第${i + 1}题</span>
+                          <span class="flex-1">你的答案：<span class="font-bold">${ans}</span></span>
+                          <span class="mx-2 text-gray-300">|</span>
+                          <span class="flex-1">正确答案：<span class="font-bold">${paper.answers[i]}</span></span>
+                        </div>
+                      `;
           }).join('')}
+                  </div>
+                  ${fillBlankHtml}
+                  <div class="mt-3 text-right">
+                     <p class="text-xs text-gray-400">提交时间: ${answer.submitTime}</p>
+                  </div>
               </div>
-              ${fillBlankHtml}
             </div>
           `;
         });
@@ -1379,7 +1423,7 @@
     }
 
     // 修改填空题分数
-    async function modifyFillBlankScore(studentId, timeElapsedKey, maxPoints) {
+    async function modifyFillBlankScore(studentId, timeElapsedKey, maxPoints, explicitPaperId = null) {
       const newScoreStr = prompt(`请输入新的填空题得分 (0 - ${maxPoints}):`);
       if (newScoreStr === null) return;
 
@@ -1390,13 +1434,15 @@
       }
 
       try {
+        const targetPaperId = explicitPaperId || currentViewingPaperId; // 优先使用显式传递的 ID
         const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+
         let targetRecordIndex = -1;
         // 优先找 isFirstSubmission 的
-        targetRecordIndex = allAnswers.findIndex(a => a.paperId === currentViewingPaperId && a.studentId === studentId && a.isFirstSubmission);
+        targetRecordIndex = allAnswers.findIndex(a => a.paperId === targetPaperId && a.studentId === studentId && a.isFirstSubmission);
 
         if (targetRecordIndex === -1) {
-          targetRecordIndex = allAnswers.findIndex(a => a.paperId === currentViewingPaperId && a.studentId === studentId);
+          targetRecordIndex = allAnswers.findIndex(a => a.paperId === targetPaperId && a.studentId === studentId);
         }
 
         if (targetRecordIndex !== -1) {
@@ -1587,6 +1633,11 @@
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${gradeDisplay}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">${student.points}分</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.lastUpdate || '未知'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+             <button class="text-blue-500 hover:text-blue-700 view-student-history-btn" data-id="${student.id}" data-name="${student.name}">
+                <i class="fa fa-history mr-1"></i> 套题详情
+             </button>
+          </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <button class="text-indigo-600 hover:text-indigo-900 edit-student-btn" 
               data-id="${student.id}" 
@@ -1603,6 +1654,152 @@
       // 绑定编辑事件
       document.querySelectorAll('.edit-student-btn').forEach(btn => {
         btn.addEventListener('click', openEditStudentModal);
+      });
+
+      // 绑定查看历史事件
+      document.querySelectorAll('.view-student-history-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          showStudentHistory(this.dataset.id, this.dataset.name);
+        });
+      });
+    }
+
+    // 引用历史模态框元素
+    const studentHistoryModal = document.getElementById('studentHistoryModal');
+    const studentHistoryModalContent = document.getElementById('studentHistoryModalContent');
+    const studentHistoryModalTitle = document.getElementById('studentHistoryModalTitle');
+    const studentHistoryList = document.getElementById('studentHistoryList');
+    const closeStudentHistoryModal = document.getElementById('closeStudentHistoryModal');
+
+    // 绑定关闭事件
+    if (closeStudentHistoryModal) // Safety check
+      closeStudentHistoryModal.addEventListener('click', () => {
+        studentHistoryModal.classList.add('hidden');
+      });
+    studentHistoryModal.addEventListener('click', e => e.target === studentHistoryModal && studentHistoryModal.classList.add('hidden'));
+
+    // 显示学生答题历史
+    async function showStudentHistory(studentId, studentName) {
+      studentHistoryModalTitle.textContent = `${studentName} - 答题记录`;
+      studentHistoryList.innerHTML = '<div class="text-center py-8 text-gray-500"><i class="fa fa-spinner fa-spin mr-2"></i> 加载中...</div>';
+
+      studentHistoryModal.classList.remove('hidden');
+      setTimeout(() => {
+        studentHistoryModalContent.classList.remove('scale-95', 'opacity-0');
+        studentHistoryModalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+
+      const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+      const allPapers = await getData(PAPER_STORAGE_KEY) || [];
+
+      // 筛选该学生的答题记录
+      const studentAnswers = allAnswers.filter(a => a.studentId === studentId);
+
+      // 按提交时间倒序
+      studentAnswers.sort((a, b) => new Date(b.submitTime) - new Date(a.submitTime));
+
+      studentHistoryList.innerHTML = '';
+      if (studentAnswers.length === 0) {
+        studentHistoryList.innerHTML = '<div class="text-center py-8 text-gray-500">暂无答题记录</div>';
+        return;
+      }
+
+      studentAnswers.forEach((answer, index) => {
+        const paper = allPapers.find(p => p.id === answer.paperId);
+        const paperName = paper ? paper.name : '未知套卷 (ID:' + answer.paperId + ')';
+        const totalPoints = paper ? paper.totalPoints : '?';
+        const isPerfect = paper && answer.score === paper.totalPoints;
+
+        // 格式化耗时
+        const timeElapsed = answer.timeElapsed || 0;
+        const minutes = String(Math.floor(timeElapsed / 60)).padStart(2, '0');
+        const seconds = String(timeElapsed % 60).padStart(2, '0');
+        const timeDisplay = `${minutes}:${seconds}`;
+
+        // 构建填空题HTML
+        let fillBlankHtml = '';
+        if (paper && paper.fillInBlankCount > 0 && answer.fillInBlankStudentImage) {
+          const fbScore = answer.fillInBlankScore || 0;
+          fillBlankHtml = `
+              <div class="mt-4 pt-4 border-t border-gray-100">
+                <div class="flex justify-between items-center mb-3">
+                    <h5 class="font-bold text-gray-700">填空题详情</h5>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-600">得分: ${fbScore}分</span>
+                        <!-- 传递 paperId 以便正确更新 -->
+                        <button onclick="modifyFillBlankScore('${answer.studentId}', null, ${paper.fillInBlankCount * paper.fillInBlankPoints}, '${answer.paperId}')" 
+                            class="text-xs bg-primary text-white px-2 py-1 rounded hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-pencil"></i> 修改
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="border rounded p-2">
+                        <p class="text-xs text-center text-gray-500 mb-1">学生答卷</p>
+                        <img src="${answer.fillInBlankStudentImage}" class="w-full h-32 object-contain cursor-zoom-in hover:opacity-90" onclick="showAdminImagePreview(this.src)">
+                    </div>
+                    <div class="border rounded p-2 bg-green-50">
+                        <p class="text-xs text-center text-green-600 mb-1">参考答案</p>
+                        <img src="${paper.fillInBlankAnswerImage || ''}" class="w-full h-32 object-contain cursor-zoom-in hover:opacity-90" onclick="showAdminImagePreview(this.src)">
+                    </div>
+                </div>
+              </div>
+            `;
+        }
+
+        // 构建题目详情HTML
+        let questionsHtml = '';
+        if (paper) {
+          questionsHtml = `
+              <div class="space-y-2 mt-2 text-sm">
+                ${answer.answers.map((ans, i) => {
+            const isCorrect = ans === paper.answers[i];
+            return `
+                        <div class="flex items-center ${isCorrect ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'} p-2 rounded">
+                          <span class="w-16 font-bold">第${i + 1}题</span>
+                          <span class="flex-1">你的答案：<span class="font-bold">${ans}</span></span>
+                          <span class="mx-2 text-gray-300">|</span>
+                          <span class="flex-1">正确答案：<span class="font-bold">${paper.answers[i]}</span></span>
+                        </div>
+                      `;
+          }).join('')}
+              </div>`;
+        }
+
+        // 创建卡片
+        const card = document.createElement('div');
+        card.className = 'border rounded-lg bg-white overflow-hidden transition-all duration-200 shadow-sm hover:shadow-md';
+        card.innerHTML = `
+            <!-- 折叠头部 -->
+            <div class="p-4 bg-gray-50 cursor-pointer flex justify-between items-center hover:bg-gray-100 transition-colors"
+                 onclick="this.nextElementSibling.classList.toggle('hidden'); 
+                          this.querySelector('.fa-chevron-down').classList.toggle('rotate-180');">
+              <div class="flex items-center space-x-3">
+                  <div class="w-2 h-12 rounded-full ${isPerfect ? 'bg-green-500' : 'bg-primary'}"></div>
+                  <div>
+                    <h4 class="font-bold text-gray-800">${paperName}</h4>
+                    <p class="text-xs text-gray-500">${answer.submitTime} 提交</p>
+                  </div>
+              </div>
+              
+              <div class="flex items-center space-x-6">
+                  <div class="text-right">
+                       <span class="block text-lg font-bold ${isPerfect ? 'text-green-600' : 'text-primary'}">
+                          ${answer.score} <span class="text-xs text-gray-400 font-normal">/${totalPoints}分</span>
+                      </span>
+                      <span class="text-xs text-gray-500">耗时: ${timeDisplay}</span>
+                  </div>
+                  <i class="fa fa-chevron-down text-gray-400 transition-transform duration-200"></i>
+              </div>
+            </div>
+            
+            <!-- 折叠内容 -->
+            <div class="hidden p-4 border-t border-gray-100 bg-white">
+                ${questionsHtml}
+                ${fillBlankHtml}
+            </div>
+        `;
+        studentHistoryList.appendChild(card);
       });
     }
 
