@@ -428,6 +428,7 @@
     let userPoints = 0;
     let userName = '';
     let userId = '';
+    let userGrade = ''; // 新增：用户年级
     let userRank = 0;
 
     // 全局变量 - 答题相关
@@ -528,6 +529,15 @@
       studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
       exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
       prizes = await getData(PRIZES_STORAGE_KEY) || [];
+
+      // 尝试恢复会话
+      studentInfo = await getData(STUDENT_INFO_KEY) || {};
+      if (studentInfo.name) {
+        userName = studentInfo.name;
+        userId = studentInfo.id;
+        userGrade = studentInfo.grade || '';
+        // 可以在这里做自动登录逻辑，但目前系统逻辑是点击登录，暂不自动填充 input
+      }
 
       // 绑定登录事件
       loginBtn.addEventListener('click', handleLogin);
@@ -741,9 +751,10 @@
       // 验证通过
       userName = studentPointsData[id].name; // 使用数据库中的规范姓名
       userId = id;
+      userGrade = studentPointsData[id].grade || '';
 
       // 保存会话信息
-      studentInfo = { name: userName, id: userId };
+      studentInfo = { name: userName, id: userId, grade: userGrade };
       await saveData(STUDENT_INFO_KEY, studentInfo);
 
       // 获取当前积分
@@ -751,7 +762,7 @@
 
       // 更新用户信息显示
       document.getElementById('user-name-display').textContent = userName;
-      document.getElementById('user-id-display').textContent = `学号: ${userId}`;
+      document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'}`;
       updateUserPointsDisplay();
 
       // 计算排名
@@ -1090,6 +1101,29 @@
       renderPaperList(grade1PaperList, grade1Papers);
       renderPaperList(grade2PaperList, grade2Papers);
       renderPaperList(grade3PaperList, grade3Papers);
+
+      // *** 核心修改：根据用户年级控制显隐 ***
+      const grade1Section = document.getElementById('grade1');
+      const grade2Section = document.getElementById('grade2');
+      const grade3Section = document.getElementById('grade3');
+
+      // 先全部隐藏 (或者全部显示，取决于默认策略，这里全部隐藏然后按需显示)
+      // 如果 userGrade 为空（未登录或未设置），可能显示全部或者都不显示
+      // 这里的策略是：如果没有 userGrade，显示全部（兼容旧行为）；如果有，只显示对应年级
+
+      if (!userGrade) {
+        grade1Section.classList.remove('hidden');
+        grade2Section.classList.remove('hidden');
+        grade3Section.classList.remove('hidden');
+      } else {
+        grade1Section.classList.add('hidden');
+        grade2Section.classList.add('hidden');
+        grade3Section.classList.add('hidden');
+
+        if (userGrade === '高一') grade1Section.classList.remove('hidden');
+        if (userGrade === '高二') grade2Section.classList.remove('hidden');
+        if (userGrade === '高三') grade3Section.classList.remove('hidden');
+      }
     }
 
     /**
