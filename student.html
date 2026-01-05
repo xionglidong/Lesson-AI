@@ -724,25 +724,27 @@
         return;
       }
 
-      // 保存学生信息
-      userName = name;
-      userId = id;
-      studentInfo = { name, id };
-      await saveData(STUDENT_INFO_KEY, studentInfo);
-
-      // 从 IndexedDB 加载最新的积分数据
+      // 从 IndexedDB 加载学生数据进行校验
       studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
 
-      // 初始化学生积分数据
+      // *** 严格校验 ***
       if (!studentPointsData[id]) {
-        studentPointsData[id] = {
-          name: name,
-          id: id,
-          points: 0,
-          lastUpdate: new Date().toLocaleString()
-        };
-        await saveData(STUDENT_POINTS_KEY, studentPointsData);
+        alert('登录失败：该学号不存在。请联系老师添加账号。');
+        return;
       }
+
+      if (studentPointsData[id].name !== name) {
+        alert('登录失败：姓名与学号不匹配，请检查输入。');
+        return;
+      }
+
+      // 验证通过
+      userName = studentPointsData[id].name; // 使用数据库中的规范姓名
+      userId = id;
+
+      // 保存会话信息
+      studentInfo = { name: userName, id: userId };
+      await saveData(STUDENT_INFO_KEY, studentInfo);
 
       // 获取当前积分
       userPoints = studentPointsData[id].points;
