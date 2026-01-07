@@ -107,7 +107,8 @@
 
       <nav class="hidden md:flex items-center space-x-6">
         <a href="index.html" class="text-gray-600 hover:text-primary">首页</a>
-        <a href="student.html" class="text-primary font-medium">学生入口</a>
+        <a href="#" id="logout-btn" class="text-gray-600 hover:text-red-500 hidden"><i
+            class="fa fa-sign-out mr-1"></i>退出</a>
       </nav>
 
       <button class="md:hidden p-2" id="mobile-menu-btn">
@@ -118,7 +119,7 @@
     <div id="mobile-menu" class="hidden bg-white border-t md:hidden">
       <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
         <a href="index.html" class="py-2 text-gray-600">首页</a>
-        <a href="student.html" class="py-2 text-primary font-medium">学生入口</a>
+        <a href="#" id="mobile-logout-btn" class="py-2 text-red-500 hidden"><i class="fa fa-sign-out mr-1"></i>退出登录</a>
       </div>
     </div>
   </header>
@@ -129,7 +130,7 @@
       <p class="text-gray-600">请填写个人信息并查看积分相关信息</p>
     </div>
 
-    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+    <div id="login-card" class="bg-white rounded-xl shadow-md p-6 mb-8">
       <div class="grid md:grid-cols-3 gap-4 items-end">
         <div>
           <label class="block text-gray-700 mb-2">姓名</label>
@@ -536,11 +537,39 @@
         userName = studentInfo.name;
         userId = studentInfo.id;
         userGrade = studentInfo.grade || '';
-        // 可以在这里做自动登录逻辑，但目前系统逻辑是点击登录，暂不自动填充 input
+
+        // 自动填充输入框 (可选，增强体验)
+        studentNameInput.value = userName;
+        studentIdInput.value = userId;
+
+        // 获取最新积分
+        if (studentPointsData[userId]) {
+          userPoints = studentPointsData[userId].points;
+        }
+
+        // 恢复 UI 状态
+        document.getElementById('user-name-display').textContent = userName;
+        document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'}`;
+        updateUserPointsDisplay();
+
+        document.getElementById('login-card').classList.add('hidden');
+        userPointsCard.classList.remove('hidden');
+        exchangeHistory.classList.remove('hidden');
+        examContainer.classList.remove('hidden');
+
+        // 加载相关数据
+        await calculateUserRank();
+        await loadAndRenderPapers();
+        await loadExchangeRecords();
+        updatePrizeButtons();
       }
 
       // 绑定登录事件
       loginBtn.addEventListener('click', handleLogin);
+
+      // 绑定退出事件
+      document.getElementById('logout-btn').addEventListener('click', handleLogout);
+      document.getElementById('mobile-logout-btn').addEventListener('click', handleLogout);
 
       // 绑定奖品兑换事件 (在 renderPrizes 中绑定)
 
@@ -571,14 +600,73 @@
       // 确保所有链接可点击
       document.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', function (e) {
-          e.preventDefault();
-          window.location.href = this.getAttribute('href');
+          // 如果是退出按钮，不阻止默认行为（虽然href是#，但在handleLogout里已处理）
+          // 这里主要是为了兼容其他页面跳转链接
+          if (this.id === 'logout-btn' || this.id === 'mobile-logout-btn') {
+            e.preventDefault();
+            return;
+          }
+          if (this.getAttribute('href') && this.getAttribute('href') !== '#') {
+            // let default behavior happen for real links
+          }
         });
       });
 
       // 监听异步数据加载（取代原有的 localStorage 监听）
       await initPrizes();
       await loadRankingList();
+
+      // 更新退出按钮状态
+      updateLogoutButtonState();
+    }
+
+    // 更新退出按钮显示状态
+    function updateLogoutButtonState() {
+      const logoutBtn = document.getElementById('logout-btn');
+      const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+
+      if (userName) {
+        logoutBtn.classList.remove('hidden');
+        mobileLogoutBtn.classList.remove('hidden');
+      } else {
+        logoutBtn.classList.add('hidden');
+        mobileLogoutBtn.classList.add('hidden');
+      }
+    }
+
+    // 处理退出登录
+    async function handleLogout() {
+      if (!confirm('确定要退出登录吗？')) {
+        return;
+      }
+
+      // 清除当前会话数据
+      userName = '';
+      userId = '';
+      userPoints = 0;
+      userGrade = '';
+      studentInfo = {};
+
+      // 清除本地存储的会话信息
+      await saveData(STUDENT_INFO_KEY, {});
+
+      // 重置界面
+      studentNameInput.value = '';
+      studentIdInput.value = '';
+
+      // 显示登录卡片，隐藏用户信息
+      document.getElementById('login-card').classList.remove('hidden');
+      userPointsCard.classList.add('hidden');
+      exchangeHistory.classList.add('hidden');
+      examContainer.classList.add('hidden'); // 隐藏答题区域
+
+      // 更新按钮状态
+      updateLogoutButtonState();
+
+      // 重置其他 UI 元素
+      if (editPrizesBtn) editPrizesBtn.classList.add('hidden');
+
+      showGeneralModal('已退出', '您已成功退出登录', 'success');
     }
 
     // --- 计时器控制函数 ---
@@ -768,7 +856,8 @@
       // 计算排名
       await calculateUserRank();
 
-      // 显示用户卡片和兑换记录
+      // 隐藏登录卡片，显示用户卡片和兑换记录
+      document.getElementById('login-card').classList.add('hidden');
       userPointsCard.classList.remove('hidden');
       exchangeHistory.classList.remove('hidden');
 
@@ -784,6 +873,9 @@
 
       // 首次登录才显示提示
       showGeneralModal('登录成功', `欢迎 ${userName}（学号：${userId}），当前积分：${userPoints}分`, 'success');
+
+      // 更新退出按钮状态
+      updateLogoutButtonState();
     }
 
     // 更新用户积分显示
@@ -1747,17 +1839,9 @@
       // 显示得分详情弹窗
       showScoreDetailModal(score, currentPaper.totalPoints, scoreDetails, message, secondsElapsed);
 
-      // *** 优化 2: 作答后重置输入和隐藏卡片 ***
-      studentNameInput.value = '';
-      studentIdInput.value = '';
-      userPointsCard.classList.add('hidden');
-      exchangeHistory.classList.add('hidden');
-      examContainer.classList.add('hidden');
+      // *** 优化 2: 作答后保持登录状态 ***
+      // 原有重置逻辑已移除，以便学生查看成绩后继续做题
 
-      // 重置全局变量
-      userName = '';
-      userId = '';
-      userPoints = 0;
 
       // 更新UI
       await calculateUserRank();
