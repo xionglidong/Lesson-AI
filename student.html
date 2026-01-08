@@ -165,7 +165,6 @@
         </div>
         <div class="text-right">
           <p class="text-3xl font-bold text-accent" id="user-points">800分</p>
-          <p class="text-sm text-gray-500">今日可答题: <span class="text-secondary">3次</span></p>
         </div>
       </div>
       <div class="mt-4 pt-4 border-t">
@@ -431,6 +430,26 @@
     let userId = '';
     let userGrade = ''; // 新增：用户年级
     let userRank = 0;
+
+    // 积分等级规则
+    const RANK_SYSTEM = [
+      { name: '坚韧黑铁', threshold: 0 },
+      { name: '英勇黄铜', threshold: 10 },
+      { name: '不屈白银', threshold: 50 },
+      { name: '荣耀黄金', threshold: 200 },
+      { name: '华贵铂金', threshold: 500 },
+      { name: '璀璨钻石', threshold: 800 },
+      { name: '至尊星耀', threshold: 1200 },
+      { name: '超凡大师', threshold: 1500 },
+      { name: '傲世宗师', threshold: 1800 },
+      { name: '最强王者', threshold: 2000 },
+      { name: '非凡王者', threshold: 2500 },
+      { name: '无双王者', threshold: 3000 },
+      { name: '绝世王者', threshold: 3500 },
+      { name: '至圣王者', threshold: 4000 },
+      { name: '荣耀王者', threshold: 4500 },
+      { name: '传奇王者', threshold: 5000 }
+    ];
 
     // 全局变量 - 答题相关
     const PAPER_STORAGE_KEY = 'gradePapers';
@@ -879,17 +898,46 @@
     }
 
     // 更新用户积分显示
+
     function updateUserPointsDisplay() {
       document.getElementById('user-points').textContent = `${userPoints}分`;
 
+      // 计算当前段位
+      let currentRankObj = RANK_SYSTEM[0];
+      let nextRankObj = null;
+
+      for (let i = 0; i < RANK_SYSTEM.length; i++) {
+        if (userPoints >= RANK_SYSTEM[i].threshold) {
+          currentRankObj = RANK_SYSTEM[i];
+          nextRankObj = RANK_SYSTEM[i + 1] || null;
+        } else {
+          break;
+        }
+      }
+
       // 计算升级进度
-      const level = Math.floor(userPoints / 1000) + 1;
-      const nextLevelPoints = level * 1000;
-      const progress = ((userPoints % 1000) / 1000) * 100;
+      let progress = 0;
+      let nextLevelText = '已达最高段位';
+
+      if (nextRankObj) {
+        const pointsNeeded = nextRankObj.threshold - currentRankObj.threshold;
+        const currentProgress = userPoints - currentRankObj.threshold;
+        // 确保分母不为0
+        if (pointsNeeded > 0) {
+          progress = (currentProgress / pointsNeeded) * 100;
+        } else {
+          progress = 100;
+        }
+        nextLevelText = `距离 ${nextRankObj.name}: ${nextRankObj.threshold - userPoints}分`;
+      } else {
+        progress = 100;
+      }
 
       document.getElementById('points-progress').style.width = `${progress}%`;
       // 修复：确保目标元素选择正确
-      document.querySelector('#user-points-card .mt-4.pt-4.border-t .ml-3.text-sm.text-gray-500').textContent = `距离下一级: ${nextLevelPoints - userPoints}分`;
+      const rankInfoElement = document.querySelector('#user-points-card .mt-4.pt-4.border-t .ml-3.text-sm.text-gray-500');
+      // Update text content with Rank Name + Distance to next rank
+      rankInfoElement.innerHTML = `<span class="font-bold text-secondary mr-2">${currentRankObj.name}</span> <span class="text-xs">${nextLevelText}</span>`;
     }
 
     // 计算用户排名
