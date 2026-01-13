@@ -576,6 +576,50 @@
     </div>
   </div>
 
+  <!-- 填空题判分弹窗 -->
+  <div id="fbGradingModal"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-[70] backdrop-blur-sm">
+    <div class="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 transform transition-all scale-95 opacity-0"
+      id="fbGradingModalContent">
+      <div class="flex justify-between items-center mb-4 pb-4 border-b">
+        <h3 class="text-xl font-bold text-gray-800">
+          <i class="fa fa-check-square-o text-primary mr-2"></i> 填空题详细判分
+        </h3>
+        <button id="closeFbGradingModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="mb-4 bg-blue-50 p-3 rounded text-sm text-blue-700">
+        <p><i class="fa fa-info-circle mr-1"></i> 请对照学生答卷和参考答案，点击下方按钮判定对错。</p>
+        <p class="mt-1 font-bold" id="fbGradingScoreDisplay">当前得分: 0分</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="border rounded p-2 bg-gray-50">
+          <p class="text-xs text-center text-gray-500 mb-1">学生答卷</p>
+          <img id="fbGradingStudentImage" src="" class="w-full h-48 object-contain cursor-zoom-in hover:opacity-90">
+        </div>
+        <div class="border rounded p-2 bg-green-50">
+          <p class="text-xs text-center text-green-600 mb-1">参考答案</p>
+          <img id="fbGradingAnswerImage" src="" class="w-full h-48 object-contain cursor-zoom-in hover:opacity-90">
+        </div>
+      </div>
+
+      <div id="fbGradingList" class="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
+        <!-- JS 动态生成题目判定按钮 -->
+      </div>
+
+      <div class="mt-6 flex justify-end space-x-3 pt-4 border-t">
+        <button id="cancelFbGradingBtn"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">取消</button>
+        <button id="saveFbGradingBtn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+          <i class="fa fa-save mr-1"></i> 保存判分
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="analysisModal"
     class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
     <div
@@ -1321,9 +1365,9 @@
                     <h5 class="font-bold text-gray-700">填空题详情</h5>
                     <div class="flex items-center space-x-2">
                         <span class="text-sm font-medium text-gray-600">填空题得分: ${fbScore}分</span>
-                        <button onclick="modifyFillBlankScore('${answer.studentId}', null, ${paper.fillInBlankCount * paper.fillInBlankPoints})" 
+                        <button onclick="openGradingModal('${answer.studentId}', '${paper.id}')" 
                             class="text-xs bg-primary text-white px-2 py-1 rounded hover:bg-primary/90 transition-colors">
-                            <i class="fa fa-pencil"></i> 修改分数
+                            <i class="fa fa-pencil"></i> 详细判分
                         </button>
                     </div>
                 </div>
@@ -1430,64 +1474,7 @@
       }, 10);
     }
 
-    // 修改填空题分数
-    async function modifyFillBlankScore(studentId, timeElapsedKey, maxPoints, explicitPaperId = null) {
-      const newScoreStr = prompt(`请输入新的填空题得分 (0 - ${maxPoints}):`);
-      if (newScoreStr === null) return;
 
-      const newScore = parseInt(newScoreStr);
-      if (isNaN(newScore) || newScore < 0 || newScore > maxPoints) {
-        alert('请输入有效的分数');
-        return;
-      }
-
-      try {
-        const targetPaperId = explicitPaperId || currentViewingPaperId; // 优先使用显式传递的 ID
-        const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
-
-        let targetRecordIndex = -1;
-        // 优先找 isFirstSubmission 的
-        targetRecordIndex = allAnswers.findIndex(a => a.paperId === targetPaperId && a.studentId === studentId && a.isFirstSubmission);
-
-        if (targetRecordIndex === -1) {
-          targetRecordIndex = allAnswers.findIndex(a => a.paperId === targetPaperId && a.studentId === studentId);
-        }
-
-        if (targetRecordIndex !== -1) {
-          const record = allAnswers[targetRecordIndex];
-          const oldFbScore = record.fillInBlankScore || 0;
-          const diff = newScore - oldFbScore;
-
-          // 更新记录
-          record.fillInBlankScore = newScore;
-          record.score += diff; // 总分同步更新
-          // 确保分数不超过总分
-          // record.score = Math.min(record.score, /* need paper total points here, complicates things */); 
-          // 简化：假设 modifying is always valid logic
-
-          await saveData(ANSWER_STORAGE_KEY, allAnswers);
-
-          // 如果是首次提交，更新学生总积分
-          if (record.isFirstSubmission) {
-            const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
-            if (studentPoints[studentId]) {
-              studentPoints[studentId].points += diff;
-              studentPoints[studentId].lastUpdate = new Date().toLocaleString() + ' (Teacher Cor)';
-              await saveData(STUDENT_POINTS_KEY, studentPoints);
-            }
-          }
-
-          alert('分数修改成功！');
-          showAnswerDetails(currentViewingPaperId); // 刷新显示
-
-        } else {
-          alert('未找到该学生的答题记录');
-        }
-      } catch (e) {
-        console.error(e);
-        alert('修改失败');
-      }
-    }
 
     // --- 奖品管理功能 ---
     function initPrizeManagement() {
@@ -1735,9 +1722,9 @@
                     <div class="flex items-center space-x-2">
                         <span class="text-sm font-medium text-gray-600">得分: ${fbScore}分</span>
                         <!-- 传递 paperId 以便正确更新 -->
-                        <button onclick="modifyFillBlankScore('${answer.studentId}', null, ${paper.fillInBlankCount * paper.fillInBlankPoints}, '${answer.paperId}')" 
+                        <button onclick="openGradingModal('${answer.studentId}', '${answer.paperId}')" 
                             class="text-xs bg-primary text-white px-2 py-1 rounded hover:bg-primary/90 transition-colors">
-                            <i class="fa fa-pencil"></i> 修改
+                            <i class="fa fa-pencil"></i> 详细判分
                         </button>
                     </div>
                 </div>
@@ -2324,6 +2311,178 @@
           imagePreviewModal.classList.add('hidden');
         }, 300);
       });
+
+      // --- 填空题判分弹窗逻辑 ---
+      const fbGradingModal = document.getElementById('fbGradingModal');
+      const fbGradingModalContent = document.getElementById('fbGradingModalContent');
+      const closeFbGradingModalBtn = document.getElementById('closeFbGradingModalBtn');
+      const cancelFbGradingBtn = document.getElementById('cancelFbGradingBtn');
+      const saveFbGradingBtn = document.getElementById('saveFbGradingBtn');
+      const fbGradingScoreDisplay = document.getElementById('fbGradingScoreDisplay');
+      const fbGradingStudentImage = document.getElementById('fbGradingStudentImage');
+      const fbGradingAnswerImage = document.getElementById('fbGradingAnswerImage');
+      const fbGradingList = document.getElementById('fbGradingList');
+
+      let currentGradingContext = null; // { studentId, paperId, paper, record }
+
+      // 绑定关闭/取消事件
+      function closeFbGradingModal() {
+        fbGradingModalContent.classList.remove('scale-100', 'opacity-100');
+        fbGradingModalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+          fbGradingModal.classList.add('hidden');
+          currentGradingContext = null;
+        }, 300);
+      }
+      closeFbGradingModalBtn.addEventListener('click', closeFbGradingModal);
+      cancelFbGradingBtn.addEventListener('click', closeFbGradingModal);
+      fbGradingModal.addEventListener('click', e => e.target === fbGradingModal && closeFbGradingModal());
+
+      // 绑定保存事件
+      saveFbGradingBtn.addEventListener('click', saveGrading);
+
+      // 暴露给全局以便 HTML onclick 调用
+      window.openGradingModal = async function (studentId, paperId) {
+        try {
+          const papers = await getData(PAPER_STORAGE_KEY) || [];
+          const paper = papers.find(p => p.id === paperId);
+          if (!paper) return alert('找不到试卷信息');
+
+          const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+
+          let targetRecordIndex = -1;
+          // 优先找该学生该试卷的首次提交
+          targetRecordIndex = allAnswers.findIndex(a => a.paperId === paperId && a.studentId === studentId && a.isFirstSubmission);
+          if (targetRecordIndex === -1) {
+            targetRecordIndex = allAnswers.findIndex(a => a.paperId === paperId && a.studentId === studentId);
+          }
+
+          if (targetRecordIndex === -1) return alert('未找到答题记录');
+
+          const record = allAnswers[targetRecordIndex];
+
+          currentGradingContext = {
+            studentId,
+            paperId,
+            paper,
+            recordIndex: targetRecordIndex,
+            tempJudgments: record.fillInBlankDetails ? [...record.fillInBlankDetails] : new Array(paper.fillInBlankCount).fill(false)
+          };
+
+          // 容错：如果 fillInBlankDetails 长度对不上
+          if (currentGradingContext.tempJudgments.length !== paper.fillInBlankCount) {
+            currentGradingContext.tempJudgments = new Array(paper.fillInBlankCount).fill(false);
+          }
+
+          // UI 初始化
+          fbGradingStudentImage.src = record.fillInBlankStudentImage || '';
+          fbGradingAnswerImage.src = paper.fillInBlankAnswerImage || '';
+
+          // 点击放大预览
+          fbGradingStudentImage.onclick = () => showAdminImagePreview(fbGradingStudentImage.src);
+          fbGradingAnswerImage.onclick = () => showAdminImagePreview(fbGradingAnswerImage.src);
+
+          renderGradingList();
+
+          fbGradingModal.classList.remove('hidden');
+          setTimeout(() => {
+            fbGradingModalContent.classList.remove('scale-95', 'opacity-0');
+            fbGradingModalContent.classList.add('scale-100', 'opacity-100');
+          }, 10);
+
+        } catch (e) {
+          console.error(e);
+          alert('打开判分界面失败');
+        }
+      };
+
+      function renderGradingList() {
+        if (!currentGradingContext) return;
+        const { paper, tempJudgments } = currentGradingContext;
+        const pointsPerQuestion = paper.fillInBlankPoints;
+
+        let currentScore = 0;
+        fbGradingList.innerHTML = '';
+
+        tempJudgments.forEach((isCorrect, index) => {
+          if (isCorrect) currentScore += pointsPerQuestion;
+
+          const item = document.createElement('div');
+          item.className = 'border rounded p-2 flex flex-col items-center justify-between bg-white';
+          item.innerHTML = `
+                 <span class="font-bold text-gray-700 mb-2">第${index + 1}空</span>
+                 <div class="flex space-x-2">
+                    <button class="w-10 h-10 rounded-full flex items-center justify-center border transition-all ${isCorrect ? 'bg-green-500 text-white border-green-600' : 'bg-white text-gray-300 border-gray-200 hover:border-green-300'}"
+                        onclick="toggleJudgment(${index}, true)">
+                        <i class="fa fa-check"></i>
+                    </button>
+                    <button class="w-10 h-10 rounded-full flex items-center justify-center border transition-all ${!isCorrect ? 'bg-red-500 text-white border-red-600' : 'bg-white text-gray-300 border-gray-200 hover:border-red-300'}"
+                        onclick="toggleJudgment(${index}, false)">
+                        <i class="fa fa-times"></i>
+                    </button>
+                 </div>
+              `;
+          fbGradingList.appendChild(item);
+        });
+
+        fbGradingScoreDisplay.textContent = `当前得分: ${currentScore}分`;
+      }
+
+      // 暴露给 global onclick
+      window.toggleJudgment = function (index, value) {
+        if (!currentGradingContext) return;
+        currentGradingContext.tempJudgments[index] = value;
+        renderGradingList();
+      };
+
+      async function saveGrading() {
+        if (!currentGradingContext) return;
+        try {
+          const { recordIndex, tempJudgments, paper, studentId } = currentGradingContext;
+          const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+
+          if (!allAnswers[recordIndex]) {
+            alert('记录同步错误，请重新打开');
+            return;
+          }
+
+          const record = allAnswers[recordIndex];
+
+          // 计算新分数
+          const correctCount = tempJudgments.filter(j => j === true).length;
+          const newFbScore = correctCount * paper.fillInBlankPoints;
+          const oldFbScore = record.fillInBlankScore || 0;
+          const diff = newFbScore - oldFbScore;
+
+          // 更新记录
+          record.fillInBlankDetails = tempJudgments;
+          record.fillInBlankScore = newFbScore;
+          record.score += diff;
+
+          await saveData(ANSWER_STORAGE_KEY, allAnswers);
+
+          // 同步更新学生总积分 (如果是首次提交)
+          if (record.isFirstSubmission) {
+            const studentPoints = await getData(STUDENT_POINTS_KEY) || {};
+            if (studentPoints[studentId]) {
+              studentPoints[studentId].points += diff;
+              studentPoints[studentId].lastUpdate = new Date().toLocaleString() + ' (Teacher Grading)';
+              await saveData(STUDENT_POINTS_KEY, studentPoints);
+            }
+          }
+
+          alert('判分保存成功');
+          closeFbGradingModal();
+          // 刷新详情页
+          if (currentViewingPaperId) {
+            showAnswerDetails(currentViewingPaperId);
+          }
+
+        } catch (e) {
+          console.error(e);
+          alert('保存失败: ' + e.message);
+        }
+      }
     });
   </script>
 </body>
