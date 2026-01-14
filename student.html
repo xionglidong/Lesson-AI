@@ -444,6 +444,33 @@
         <button id="refresh-papers-btn" class="text-primary font-medium">立即查看</button>
       </div>
     </div>
+
+    <!-- 退出总结弹窗 -->
+    <div id="logoutSummaryModal"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+      <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center transform transition-all scale-95 opacity-0"
+        id="logoutSummaryContent">
+        <div class="text-primary text-4xl mb-4">
+          <i class="fa fa-star"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-4">今日学习成果</h3>
+        <div class="bg-blue-50 p-4 rounded-lg mb-6">
+          <p class="text-gray-700 leading-relaxed" id="logoutSummaryText">
+            正在计算今日数据...
+          </p>
+        </div>
+        <div class="flex justify-center space-x-4">
+          <button id="cancelLogoutBtn"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+            取消
+          </button>
+          <button id="confirmLogoutBtn"
+            class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+            退出
+          </button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <footer class="bg-dark text-white py-8 mt-10">
@@ -637,6 +664,12 @@
       document.getElementById('logout-btn').addEventListener('click', handleLogout);
       document.getElementById('mobile-logout-btn').addEventListener('click', handleLogout);
 
+      // 绑定退出总结弹窗事件
+      document.getElementById('confirmLogoutBtn').addEventListener('click', performLogout);
+      document.getElementById('cancelLogoutBtn').addEventListener('click', closeLogoutSummaryModal);
+      const logoutSummaryModal = document.getElementById('logoutSummaryModal');
+      logoutSummaryModal.addEventListener('click', e => e.target === logoutSummaryModal && closeLogoutSummaryModal());
+
       // 绑定奖品兑换事件 (在 renderPrizes 中绑定)
 
       // 绑定奖品编辑事件
@@ -700,11 +733,81 @@
       }
     }
 
-    // 处理退出登录
+    // 显示退出总结弹窗
     async function handleLogout() {
-      if (!confirm('确定要退出登录吗？')) {
-        return;
+      if (!userName) return;
+
+      const modal = document.getElementById('logoutSummaryModal');
+      const content = document.getElementById('logoutSummaryContent');
+      const summaryText = document.getElementById('logoutSummaryText');
+
+      // 1. 获取今日数据
+      const today = new Date().toLocaleDateString();
+      const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+      const papers = await getData(PAPER_STORAGE_KEY) || [];
+
+      // 筛选今日该学生的作答记录
+      const todayRecords = allAnswers.filter(record => {
+        if (record.studentId !== userId) return false;
+        // 假设 record.submitTime 是 "YYYY-MM-DD HH:mm:ss" 格式
+        const recordDate = new Date(record.submitTime.replace(/-/g, '/')).toLocaleDateString();
+        return recordDate === today;
+      });
+
+      // 2. 计算统计数据
+      const paperCount = todayRecords.length;
+      let totalQuestions = 0;
+      let totalCorrect = 0;
+      let totalPointsEarned = 0;
+
+      for (const record of todayRecords) {
+        totalPointsEarned += (record.score || 0);
+
+        // 获取套卷信息以计算正确数和总题数
+        const paper = papers.find(p => p.id === record.paperId);
+        if (paper) {
+          totalQuestions += paper.questionCount;
+          // 计算正确题数
+          if (record.answers && paper.answers) {
+            record.answers.forEach((ans, idx) => {
+              if (ans === paper.answers[idx]) {
+                totalCorrect++;
+              }
+            });
+          }
+        } else {
+          // 如果找不到套卷信息，尝试用 answers 长度估算
+          if (record.answers) totalQuestions += record.answers.length;
+          // 无法准确计算正确数，只能略过或基于分数估算（不准确），这里保守处理
+        }
       }
+
+      const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+      // 3. 生成总结文案
+      // xx同学，今日完成1套试卷，总共10道题目，正确率高达90%，获得了10积分，真是太棒了！
+      summaryText.innerHTML = `
+        <span class="font-bold text-lg text-primary">${userName}</span> 同学，<br>
+        今日完成 <span class="font-bold text-accent">${paperCount}</span> 套试卷，
+        总共 <span class="font-bold text-accent">${totalQuestions}</span> 道题目，<br>
+        正确率高达 <span class="font-bold text-green-600">${accuracy}%</span>，
+        获得了 <span class="font-bold text-accent">${totalPointsEarned}</span> 积分，<br>
+        真是太棒了！
+      `;
+
+      // 4. 显示弹窗
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    // 执行实际退出操作
+    async function performLogout() {
+      // 隐藏总结弹窗
+      const modal = document.getElementById('logoutSummaryModal');
+      modal.classList.add('hidden');
 
       // 清除当前会话数据
       userName = '';
@@ -733,6 +836,18 @@
       if (editPrizesBtn) editPrizesBtn.classList.add('hidden');
 
       showGeneralModal('已退出', '您已成功退出登录', 'success');
+    }
+
+    // 关闭退出总结弹窗
+    function closeLogoutSummaryModal() {
+      const modal = document.getElementById('logoutSummaryModal');
+      const content = document.getElementById('logoutSummaryContent');
+
+      content.classList.remove('scale-100', 'opacity-100');
+      content.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
     }
 
     // --- 计时器控制函数 ---
