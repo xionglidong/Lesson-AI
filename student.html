@@ -445,6 +445,28 @@
       </div>
     </div>
 
+    <!-- 视频播放弹窗 -->
+    <div id="videoPlayerModal"
+      class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-[60] backdrop-blur-sm">
+      <div
+        class="bg-black rounded-xl p-2 max-w-4xl w-full mx-4 shadow-2xl transform transition-all scale-95 opacity-0 relative"
+        id="videoPlayerContent">
+        <button id="closeVideoPlayerBtn"
+          class="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors z-50">
+          <i class="fa fa-times text-2xl"></i>
+        </button>
+        <div class="aspect-w-16 aspect-h-9 bg-black rounded-lg overflow-hidden">
+          <video id="explanationVideo" controls class="w-full h-full object-contain">
+            <source src="" type="video/mp4">
+            您的浏览器不支持 HTML5 视频。
+          </video>
+        </div>
+        <div class="mt-2 text-white px-2">
+          <h4 id="videoTitle" class="text-lg font-medium">题目讲解</h4>
+        </div>
+      </div>
+    </div>
+
     <!-- 退出总结弹窗 -->
     <div id="logoutSummaryModal"
       class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
@@ -1653,20 +1675,40 @@
 
       latestRecord.answers.forEach((ans, i) => {
         const isCorrect = ans === paper.answers[i];
+
+        // 检查是否有视频讲解
+        const videoPath = (paper.videos && paper.videos[i]) ? paper.videos[i] : null;
+        let videoBtnHtml = '';
+        if (videoPath) {
+          // 这里假设视频文件都在 video 文件夹下
+          const fullVideoPath = `./video/${videoPath}`;
+          videoBtnHtml = `
+            <button onclick="playExplanationVideo('${fullVideoPath}', '第 ${i + 1} 题讲解')" 
+               class="mt-2 text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full hover:bg-indigo-200 transition-colors flex items-center w-fit">
+               <i class="fa fa-play-circle mr-1.5 text-indigo-600"></i> 观看视频讲解
+            </button>
+          `;
+        }
+
         const detailItem = document.createElement('div');
         detailItem.className = `p-3 rounded-lg ${isCorrect ? 'result-correct' : 'result-incorrect'}`;
         detailItem.innerHTML = `
-                <p class="font-medium">
-                    <span class="mr-2">${i + 1}. 题目 ${i + 1}</span>
-                    <span class="text-sm">${isCorrect ? '✅ 回答正确' : '❌ 回答错误'}</span>
-                </p>
-                <div class="mt-1 text-sm space-y-0.5">
-                    <p>你的答案: <span class="font-bold">${ans}</span></p>
-                    <p>正确答案: <span class="font-bold">${paper.answers[i]}</span></p>
-                    <p class="text-xs text-gray-500">
-                        ${paper.options[paper.answers[i]] || '无选项内容'}
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="font-medium">
+                        <span class="mr-2">${i + 1}. 题目 ${i + 1}</span>
+                        <span class="text-sm">${isCorrect ? '✅ 回答正确' : '❌ 回答错误'}</span>
                     </p>
+                    <div class="mt-1 text-sm space-y-0.5">
+                        <p>你的答案: <span class="font-bold">${ans}</span></p>
+                        <p>正确答案: <span class="font-bold">${paper.answers[i]}</span></p>
+                        <p class="text-xs text-gray-500">
+                            ${paper.options[paper.answers[i]] || '无选项内容'}
+                        </p>
+                    </div>
+                  </div>
                 </div>
+                ${videoBtnHtml}
             `;
         historyDetailsList.appendChild(detailItem);
       });
@@ -1708,6 +1750,41 @@
       }, 300);
     }
 
+
+    // 打开答题卡 (修改: 点击外部区域不关闭，只能点按钮关闭)
+    // answerCardModal.addEventListener('click', e => e.target === answerCardModal && closeAnswerModal());
+
+    // 视频播放功能
+    const videoPlayerModal = document.getElementById('videoPlayerModal');
+    const videoPlayerContent = document.getElementById('videoPlayerContent');
+    const explanationVideo = document.getElementById('explanationVideo');
+    const closeVideoPlayerBtn = document.getElementById('closeVideoPlayerBtn');
+    const videoTitle = document.getElementById('videoTitle');
+
+    function playExplanationVideo(src, title) {
+      explanationVideo.src = src;
+      videoTitle.textContent = title;
+
+      videoPlayerModal.classList.remove('hidden');
+      setTimeout(() => {
+        videoPlayerContent.classList.remove('scale-95', 'opacity-0');
+        videoPlayerContent.classList.add('scale-100', 'opacity-100');
+        explanationVideo.play().catch(e => console.log('Auto-play blocked:', e));
+      }, 10);
+    }
+
+    function closeVideoPlayer() {
+      explanationVideo.pause();
+      videoPlayerContent.classList.remove('scale-100', 'opacity-100');
+      videoPlayerContent.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        videoPlayerModal.classList.add('hidden');
+        explanationVideo.src = ''; // Clear source to stop buffering
+      }, 300);
+    }
+
+    closeVideoPlayerBtn.addEventListener('click', closeVideoPlayer);
+    videoPlayerModal.addEventListener('click', e => e.target === videoPlayerModal && closeVideoPlayer());
 
     // 打开答题卡
     async function openAnswerCard(paperId) {

@@ -1639,37 +1639,62 @@
       answersConfigList.innerHTML = '';
       for (let i = 0; i < paper.questionCount; i++) {
         const currentAnswer = paper.answers[i];
+        const currentVideo = (paper.videos && paper.videos[i]) || ''; // 获取当前视频配置
+
         const questionDiv = document.createElement('div');
         questionDiv.className = 'border rounded-lg p-4 bg-gray-50';
         questionDiv.innerHTML = `
-          <div class="flex items-center justify-between">
-            <label class="font-medium text-gray-700">第 ${i + 1} 题正确答案</label>
-            <div class="flex space-x-2">
-              <label class="inline-flex items-center">
-                <input type="radio" name="answer_${i}" value="A" ${currentAnswer === 'A' ? 'checked' : ''}
-                  class="form-radio text-blue-600 focus:ring-blue-500">
-                <span class="ml-2">A</span>
-              </label>
-              <label class="inline-flex items-center">
-                <input type="radio" name="answer_${i}" value="B" ${currentAnswer === 'B' ? 'checked' : ''}
-                  class="form-radio text-blue-600 focus:ring-blue-500">
-                <span class="ml-2">B</span>
-              </label>
-              <label class="inline-flex items-center">
-                <input type="radio" name="answer_${i}" value="C" ${currentAnswer === 'C' ? 'checked' : ''}
-                  class="form-radio text-blue-600 focus:ring-blue-500">
-                <span class="ml-2">C</span>
-              </label>
-              <label class="inline-flex items-center">
-                <input type="radio" name="answer_${i}" value="D" ${currentAnswer === 'D' ? 'checked' : ''}
-                  class="form-radio text-blue-600 focus:ring-blue-500">
-                <span class="ml-2">D</span>
-              </label>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="font-medium text-gray-700">第 ${i + 1} 题正确答案</label>
+              <div class="flex space-x-2">
+                <label class="inline-flex items-center">
+                  <input type="radio" name="answer_${i}" value="A" ${currentAnswer === 'A' ? 'checked' : ''}
+                    class="form-radio text-blue-600 focus:ring-blue-500">
+                  <span class="ml-2">A</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input type="radio" name="answer_${i}" value="B" ${currentAnswer === 'B' ? 'checked' : ''}
+                    class="form-radio text-blue-600 focus:ring-blue-500">
+                  <span class="ml-2">B</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input type="radio" name="answer_${i}" value="C" ${currentAnswer === 'C' ? 'checked' : ''}
+                    class="form-radio text-blue-600 focus:ring-blue-500">
+                  <span class="ml-2">C</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input type="radio" name="answer_${i}" value="D" ${currentAnswer === 'D' ? 'checked' : ''}
+                    class="form-radio text-blue-600 focus:ring-blue-500">
+                  <span class="ml-2">D</span>
+                </label>
+              </div>
             </div>
+            
+            <div class="flex items-center space-x-2 pt-2 border-t border-gray-200">
+               <label class="text-sm text-gray-600">讲解视频:</label>
+               <input type="text" id="video_input_${i}" value="${currentVideo}" placeholder="输入文件名或选择文件" 
+                  class="flex-1 px-2 py-1 text-sm border rounded text-gray-700 bg-white focus:outline-none focus:border-blue-500">
+               <label class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-2 py-1 rounded text-sm">
+                  <i class="fa fa-folder-open"></i> 选择
+                  <input type="file" class="hidden video-file-selector" data-target="video_input_${i}" accept="video/*">
+               </label>
+            </div>
+            <p class="text-xs text-gray-400">请确保视频文件位于 video 文件夹下</p>
           </div>
         `;
         answersConfigList.appendChild(questionDiv);
       }
+
+      // 绑定文件选择事件
+      document.querySelectorAll('.video-file-selector').forEach(input => {
+        input.addEventListener('change', function (e) {
+          if (this.files && this.files[0]) {
+            const targetId = this.dataset.target;
+            document.getElementById(targetId).value = this.files[0].name;
+          }
+        });
+      });
 
       // 显示弹窗
       answerConfigModal.classList.remove('hidden');
@@ -1699,8 +1724,9 @@
         return;
       }
 
-      // 收集新的答案
+      // 收集新的答案和视频配置
       const newAnswers = [];
+      const newVideos = [];
       for (let i = 0; i < currentConfigPaper.questionCount; i++) {
         const selected = document.querySelector(`input[name="answer_${i}"]:checked`);
         if (!selected) {
@@ -1708,6 +1734,10 @@
           return;
         }
         newAnswers.push(selected.value);
+
+        // 收集视频配置
+        const videoInput = document.getElementById(`video_input_${i}`);
+        newVideos.push(videoInput ? videoInput.value.trim() : '');
       }
 
       // 更新套卷数据
@@ -1722,6 +1752,7 @@
       // 保存旧答案用于对比
       const oldAnswers = papers[paperIndex].answers;
       papers[paperIndex].answers = newAnswers;
+      papers[paperIndex].videos = newVideos; // 保存视频配置
 
       // 保存套卷数据
       await saveData(PAPER_STORAGE_KEY, papers);
