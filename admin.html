@@ -688,6 +688,40 @@
     </div>
   </div>
 
+  <!-- 正确答案配置弹窗 -->
+  <div id="answerConfigModal"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    <div
+      class="bg-white rounded-xl p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all scale-95 opacity-0"
+      id="answerConfigModalContent">
+      <div class="flex justify-between items-start mb-6">
+        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+          <i class="fa fa-cog text-blue-600 mr-2"></i>
+          <span id="configAnswerPaperTitle">配置正确答案</span>
+        </h3>
+        <button id="closeAnswerConfigModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="mb-4 bg-blue-50 p-3 rounded text-sm text-blue-700">
+        <p><i class="fa fa-info-circle mr-1"></i> 重新设置每道选择题的正确答案。修改后,系统将使用新答案重新判分所有已提交的答题记录。</p>
+      </div>
+
+      <div id="answersConfigList" class="space-y-3">
+        <!-- 动态生成每道题的答案选择 -->
+      </div>
+
+      <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
+        <button id="cancelAnswerConfigBtn"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">取消</button>
+        <button id="saveAnswerConfigBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <i class="fa fa-save mr-1"></i> 保存并重新判分
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // 存储键名
     const PAPER_STORAGE_KEY = 'gradePapers'; // 套卷数据
@@ -1257,6 +1291,9 @@
               <button class="text-purple-500 analyze-paper text-sm whitespace-nowrap" data-id="${paper.id}">
                 <i class="fa fa-pie-chart mr-1"></i> 分析
               </button>
+              <button class="text-green-600 config-answers text-sm whitespace-nowrap" data-id="${paper.id}">
+                <i class="fa fa-cog mr-1"></i> 配置答案
+              </button>
               <button class="text-red-500 delete-paper text-sm" data-id="${paper.id}">
                 <i class="fa fa-trash"></i>
               </button>
@@ -1284,6 +1321,12 @@
         paperItem.querySelector('.analyze-paper').addEventListener('click', function () {
           const paperId = this.dataset.id;
           showAnalysis(paperId);
+        });
+
+        // 绑定答案配置事件
+        paperItem.querySelector('.config-answers').addEventListener('click', function () {
+          const paperId = this.dataset.id;
+          openAnswerConfigModal(paperId);
         });
       });
     }
@@ -1557,6 +1600,166 @@
       prizes = prizes.filter(p => p.id !== prizeId);
       await saveData(PRIZES_STORAGE_KEY, prizes);
       loadPrizes();
+    }
+
+    // --- 正确答案配置功能 ---
+    const answerConfigModal = document.getElementById('answerConfigModal');
+    const answerConfigModalContent = document.getElementById('answerConfigModalContent');
+    const configAnswerPaperTitle = document.getElementById('configAnswerPaperTitle');
+    const answersConfigList = document.getElementById('answersConfigList');
+    const closeAnswerConfigModalBtn = document.getElementById('closeAnswerConfigModalBtn');
+    const cancelAnswerConfigBtn = document.getElementById('cancelAnswerConfigBtn');
+    const saveAnswerConfigBtn = document.getElementById('saveAnswerConfigBtn');
+    let currentConfigPaperId = null;
+    let currentConfigPaper = null;
+
+    // 初始化答案配置功能
+    (function initAnswerConfig() {
+      closeAnswerConfigModalBtn.addEventListener('click', closeAnswerConfigModal);
+      cancelAnswerConfigBtn.addEventListener('click', closeAnswerConfigModal);
+      saveAnswerConfigBtn.addEventListener('click', saveAnswerConfig);
+      answerConfigModal.addEventListener('click', e => e.target === answerConfigModal && closeAnswerConfigModal());
+    })();
+
+    // 打开答案配置弹窗
+    async function openAnswerConfigModal(paperId) {
+      const papers = await getData(PAPER_STORAGE_KEY) || [];
+      const paper = papers.find(p => p.id === paperId);
+
+      if (!paper) {
+        alert('未找到该套卷');
+        return;
+      }
+
+      currentConfigPaperId = paperId;
+      currentConfigPaper = paper;
+      configAnswerPaperTitle.textContent = `配置正确答案 - ${paper.name}`;
+
+      // 生成每道题的答案选择
+      answersConfigList.innerHTML = '';
+      for (let i = 0; i < paper.questionCount; i++) {
+        const currentAnswer = paper.answers[i];
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'border rounded-lg p-4 bg-gray-50';
+        questionDiv.innerHTML = `
+          <div class="flex items-center justify-between">
+            <label class="font-medium text-gray-700">第 ${i + 1} 题正确答案</label>
+            <div class="flex space-x-2">
+              <label class="inline-flex items-center">
+                <input type="radio" name="answer_${i}" value="A" ${currentAnswer === 'A' ? 'checked' : ''}
+                  class="form-radio text-blue-600 focus:ring-blue-500">
+                <span class="ml-2">A</span>
+              </label>
+              <label class="inline-flex items-center">
+                <input type="radio" name="answer_${i}" value="B" ${currentAnswer === 'B' ? 'checked' : ''}
+                  class="form-radio text-blue-600 focus:ring-blue-500">
+                <span class="ml-2">B</span>
+              </label>
+              <label class="inline-flex items-center">
+                <input type="radio" name="answer_${i}" value="C" ${currentAnswer === 'C' ? 'checked' : ''}
+                  class="form-radio text-blue-600 focus:ring-blue-500">
+                <span class="ml-2">C</span>
+              </label>
+              <label class="inline-flex items-center">
+                <input type="radio" name="answer_${i}" value="D" ${currentAnswer === 'D' ? 'checked' : ''}
+                  class="form-radio text-blue-600 focus:ring-blue-500">
+                <span class="ml-2">D</span>
+              </label>
+            </div>
+          </div>
+        `;
+        answersConfigList.appendChild(questionDiv);
+      }
+
+      // 显示弹窗
+      answerConfigModal.classList.remove('hidden');
+      setTimeout(() => {
+        answerConfigModalContent.classList.remove('scale-95', 'opacity-0');
+        answerConfigModalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    // 关闭答案配置弹窗
+    function closeAnswerConfigModal() {
+      answerConfigModalContent.classList.remove('scale-100', 'opacity-100');
+      answerConfigModalContent.classList.add('scale-95', 'opacity-0');
+
+      setTimeout(() => {
+        answerConfigModal.classList.add('hidden');
+        currentConfigPaperId = null;
+        currentConfigPaper = null;
+        answersConfigList.innerHTML = '';
+      }, 300);
+    }
+
+    // 保存答案配置并重新判分
+    async function saveAnswerConfig() {
+      if (!currentConfigPaperId || !currentConfigPaper) {
+        alert('配置失败：未找到套卷信息');
+        return;
+      }
+
+      // 收集新的答案
+      const newAnswers = [];
+      for (let i = 0; i < currentConfigPaper.questionCount; i++) {
+        const selected = document.querySelector(`input[name="answer_${i}"]:checked`);
+        if (!selected) {
+          alert(`请为第 ${i + 1} 题选择正确答案`);
+          return;
+        }
+        newAnswers.push(selected.value);
+      }
+
+      // 更新套卷数据
+      let papers = await getData(PAPER_STORAGE_KEY) || [];
+      const paperIndex = papers.findIndex(p => p.id === currentConfigPaperId);
+
+      if (paperIndex === -1) {
+        alert('配置失败：未找到该套卷');
+        return;
+      }
+
+      // 保存旧答案用于对比
+      const oldAnswers = papers[paperIndex].answers;
+      papers[paperIndex].answers = newAnswers;
+
+      // 保存套卷数据
+      await saveData(PAPER_STORAGE_KEY, papers);
+
+      // 重新判分所有答题记录
+      let allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+      let regradeCount = 0;
+
+      allAnswers = allAnswers.map(answer => {
+        if (answer.paperId === currentConfigPaperId) {
+          // 重新计算选择题得分
+          let newScore = 0;
+          const questionPoints = currentConfigPaper.questionPoints;
+
+          for (let i = 0; i < answer.answers.length; i++) {
+            if (answer.answers[i] === newAnswers[i]) {
+              newScore += questionPoints;
+            }
+          }
+
+          // 如果有填空题,保留填空题得分
+          if (answer.fillBlankScore !== undefined) {
+            newScore += answer.fillBlankScore;
+          }
+
+          answer.score = newScore;
+          regradeCount++;
+        }
+        return answer;
+      });
+
+      // 保存更新后的答题记录
+      await saveData(ANSWER_STORAGE_KEY, allAnswers);
+
+      // 关闭弹窗并刷新列表
+      closeAnswerConfigModal();
+      renderAllPaperLists();
+      alert(`答案配置已保存,已重新判分 ${regradeCount} 份答卷`);
     }
 
     // --- 学生/积分管理功能 ---
