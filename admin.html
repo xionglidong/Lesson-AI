@@ -1292,7 +1292,7 @@
                 <i class="fa fa-pie-chart mr-1"></i> 分析
               </button>
               <button class="text-green-600 config-answers text-sm whitespace-nowrap" data-id="${paper.id}">
-                <i class="fa fa-cog mr-1"></i> 配置答案
+                <i class="fa fa-cog mr-1"></i> 配置
               </button>
               <button class="text-red-500 delete-paper text-sm" data-id="${paper.id}">
                 <i class="fa fa-trash"></i>
@@ -1686,8 +1686,39 @@
         answersConfigList.appendChild(questionDiv);
       }
 
+      // 生成填空题的视频配置
+      const fillBlankCount = paper.fillInBlankCount || 0;
+      if (fillBlankCount > 0) {
+        const fbTitle = document.createElement('h4');
+        fbTitle.className = 'font-bold text-gray-700 mt-6 mb-3 px-1 border-l-4 border-blue-500 pl-2';
+        fbTitle.textContent = '填空题视频配置';
+        answersConfigList.appendChild(fbTitle);
+
+        for (let i = 0; i < fillBlankCount; i++) {
+          const currentVideo = (paper.fillBlankVideos && paper.fillBlankVideos[i]) || '';
+
+          const div = document.createElement('div');
+          div.className = 'border rounded-lg p-4 bg-gray-50';
+          div.innerHTML = `
+            <div class="flex flex-col space-y-2">
+              <span class="font-medium text-gray-700">第 ${i + 1} 道填空题</span>
+              <div class="flex items-center space-x-2">
+                 <label class="text-sm text-gray-600 w-20">讲解视频:</label>
+                 <input type="text" id="fb_video_input_${i}" value="${currentVideo}" placeholder="输入文件名或选择文件" 
+                    class="flex-1 px-2 py-1 text-sm border rounded text-gray-700 bg-white focus:outline-none focus:border-blue-500">
+                 <label class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-2 py-1 rounded text-sm">
+                    <i class="fa fa-folder-open"></i> 选择
+                    <input type="file" class="hidden fb-video-selector" data-target="fb_video_input_${i}" accept="video/*">
+                 </label>
+              </div>
+            </div>
+          `;
+          answersConfigList.appendChild(div);
+        }
+      }
+
       // 绑定文件选择事件
-      document.querySelectorAll('.video-file-selector').forEach(input => {
+      document.querySelectorAll('.video-file-selector, .fb-video-selector').forEach(input => {
         input.addEventListener('change', function (e) {
           if (this.files && this.files[0]) {
             const targetId = this.dataset.target;
@@ -1740,6 +1771,14 @@
         newVideos.push(videoInput ? videoInput.value.trim() : '');
       }
 
+      // 收集填空题视频配置
+      const newFillBlankVideos = [];
+      const fillBlankCount = currentConfigPaper.fillInBlankCount || 0;
+      for (let i = 0; i < fillBlankCount; i++) {
+        const videoInput = document.getElementById(`fb_video_input_${i}`);
+        newFillBlankVideos.push(videoInput ? videoInput.value.trim() : '');
+      }
+
       // 更新套卷数据
       let papers = await getData(PAPER_STORAGE_KEY) || [];
       const paperIndex = papers.findIndex(p => p.id === currentConfigPaperId);
@@ -1752,7 +1791,8 @@
       // 保存旧答案用于对比
       const oldAnswers = papers[paperIndex].answers;
       papers[paperIndex].answers = newAnswers;
-      papers[paperIndex].videos = newVideos; // 保存视频配置
+      papers[paperIndex].videos = newVideos; // 保存选择题视频配置
+      papers[paperIndex].fillBlankVideos = newFillBlankVideos; // 保存填空题视频配置
 
       // 保存套卷数据
       await saveData(PAPER_STORAGE_KEY, papers);

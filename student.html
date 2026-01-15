@@ -1715,6 +1715,28 @@
 
       // 如果有填空题，显示填空题详情
       if (latestRecord.fillInBlankStudentImage && paper.fillInBlankCount > 0) {
+
+        // 生成填空题视频按钮
+        let fbVideosHtml = '';
+        if (paper.fillBlankVideos && paper.fillBlankVideos.some(v => v)) {
+          fbVideosHtml = '<div class="mt-4 p-3 bg-indigo-50 rounded-lg border border-indigo-100"><h5 class="text-sm font-bold text-indigo-800 mb-2">填空题视频讲解</h5><div class="space-y-2">';
+          paper.fillBlankVideos.forEach((video, i) => {
+            if (video) {
+              const fullVideoPath = `./video/${video}`;
+              fbVideosHtml += `
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-medium text-gray-600 w-16">第 ${i + 1} 题:</span>
+                    <button onclick="playExplanationVideo('${fullVideoPath}', '第 ${i + 1} 道填空题讲解')" 
+                       class="text-xs bg-white border border-indigo-200 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-50 transition-colors flex items-center shadow-sm">
+                       <i class="fa fa-play-circle mr-1.5 text-indigo-600"></i> 观看视频
+                    </button>
+                </div>
+              `;
+            }
+          });
+          fbVideosHtml += '</div></div>';
+        }
+
         const fbDetailItem = document.createElement('div');
         fbDetailItem.className = 'mt-6 border-t pt-4';
         fbDetailItem.innerHTML = `
@@ -1729,6 +1751,7 @@
                       <img src="${paper.fillInBlankAnswerImage || ''}" class="w-full h-auto rounded object-contain cursor-pointer hover:opacity-90" onclick="showImagePreview(this.src)" />
                    </div>
                 </div>
+                ${fbVideosHtml}
             `;
         historyDetailsList.appendChild(fbDetailItem);
       }
