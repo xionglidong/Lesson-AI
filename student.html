@@ -168,11 +168,11 @@
         </div>
       </div>
       <div class="mt-4 pt-4 border-t">
+        <p class="text-gray-600 mt-1 mb-1">当前称号: <span id="currentRankSpan" class="text-sm text-gray-500 mr-5" style="font-size: 18px;"></span> 距离: <span id="nextRankSpan" class="text-sm text-gray-500" style="font-size: 18px;"></span> </p>
         <div class="flex items-center">
           <div class="w-full bg-gray-200 rounded-full h-2.5">
             <div id="points-progress" class="bg-accent h-2.5 rounded-full" style="width: 80%"></div>
           </div>
-          <span class="ml-3 text-sm text-gray-500">距离下一级: 200分</span>
         </div>
       </div>
     </div>
@@ -528,22 +528,22 @@
 
     // 积分等级规则
     const RANK_SYSTEM = [
-      { name: '坚韧黑铁', threshold: 0 },
-      { name: '英勇黄铜', threshold: 10 },
-      { name: '不屈白银', threshold: 50 },
-      { name: '荣耀黄金', threshold: 200 },
-      { name: '华贵铂金', threshold: 500 },
-      { name: '璀璨钻石', threshold: 800 },
-      { name: '至尊星耀', threshold: 1200 },
-      { name: '超凡大师', threshold: 1500 },
-      { name: '傲世宗师', threshold: 1800 },
-      { name: '最强王者', threshold: 2000 },
-      { name: '非凡王者', threshold: 2500 },
-      { name: '无双王者', threshold: 3000 },
-      { name: '绝世王者', threshold: 3500 },
-      { name: '至圣王者', threshold: 4000 },
-      { name: '荣耀王者', threshold: 4500 },
-      { name: '传奇王者', threshold: 5000 }
+      { name: '学者', threshold: 0, color: '#737373' },
+      { name: '学徒', threshold: 10, color: '#B87333' },
+      { name: '学士', threshold: 50, color: '#8493A8' },
+      { name: '学客', threshold: 200, color: '#C69D3D' },
+      { name: '学匠', threshold: 500, color: '#2EA29F' },
+      { name: '学师', threshold: 800, color: '#4169E1' },
+      { name: '学霸', threshold: 1200, color: '#FF1A1A' },
+      { name: '学王', threshold: 1500, color: '#F16022' },
+      { name: '学灵', threshold: 1800, color: '#9F5CF7' },
+      { name: '学尊', threshold: 2000, color: '#C533FF' },
+      { name: '学宗', threshold: 2500, color: '#FF4D00' },
+      { name: '学皇', threshold: 3000, color: '#DC143C' },
+      { name: '学帝', threshold: 3500, color: '#D60000' },
+      { name: '学仙', threshold: 4000, color: '#DAA520' },
+      { name: '学圣', threshold: 4500, color: '#FF8C00' },
+      { name: '学神', threshold: 5000, color: '#FF0000' }
     ];
 
     // 全局变量 - 答题相关
@@ -1253,16 +1253,18 @@
         } else {
           progress = 100;
         }
-        nextLevelText = `距离 ${nextRankObj.name}: ${nextRankObj.threshold - userPoints}分`;
+        nextLevelText = `${nextRankObj.name}`;
       } else {
         progress = 100;
       }
 
       document.getElementById('points-progress').style.width = `${progress}%`;
       // 修复：确保目标元素选择正确
-      const rankInfoElement = document.querySelector('#user-points-card .mt-4.pt-4.border-t .ml-3.text-sm.text-gray-500');
+      const rankInfoElement = document.querySelector('#currentRankSpan');
+      const nextRankInfoElement = document.querySelector('#nextRankSpan');
       // Update text content with Rank Name + Distance to next rank
-      rankInfoElement.innerHTML = `<span class="font-bold text-secondary mr-2">${currentRankObj.name}</span> <span class="text-xs">${nextLevelText}</span>`;
+      rankInfoElement.innerHTML = `<span class="font-bold mr-2 transition-colors duration-500" style="color: ${currentRankObj.color}">${currentRankObj.name}</span>`;
+      nextRankInfoElement.innerHTML = `<span class="font-bold mr-2 transition-colors duration-500" style="color: ${nextRankObj.color}">${nextLevelText}</span>${nextRankObj.threshold - userPoints}分`;
     }
 
     // 计算用户排名

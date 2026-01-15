@@ -451,9 +451,14 @@
                   <thead class="bg-gray-50 sticky top-0">
                     <tr>
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
-                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学号</th>
+                      <th id="sortByIdBtn"
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group">
+                        学号 <i class="fa fa-sort text-gray-300 group-hover:text-gray-500 ml-1"></i>
+                      </th>
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">年级</th>
-                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">当前积分
+                      <th id="sortByPointsBtn"
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group">
+                        当前积分 <i class="fa fa-sort text-gray-300 group-hover:text-gray-500 ml-1"></i>
                       </th>
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上次更新
                       </th>
@@ -1959,6 +1964,10 @@
     const saveStudentBtn = document.getElementById('saveStudentBtn');
     let isEditingStudent = false;
 
+    // 学生列表排序状态
+    let studentSortField = 'points'; // 'id' 或 'points'
+    let studentSortDirection = 'desc'; // 'asc' 或 'desc'
+
     function initStudentManagement() {
       loadStudentPointsList();
       exportStudentsBtn.addEventListener('click', exportStudentData);
@@ -1973,6 +1982,25 @@
       if (studentGradeFilter) {
         studentGradeFilter.addEventListener('change', loadStudentPointsList);
       }
+
+      // 绑定表头排序事件
+      document.getElementById('sortByIdBtn').addEventListener('click', () => handleStudentSort('id'));
+      document.getElementById('sortByPointsBtn').addEventListener('click', () => handleStudentSort('points'));
+    }
+
+    // 处理排序切换逻辑
+    function handleStudentSort(field) {
+      if (studentSortField === field) {
+        // 同一字段切换方向
+        studentSortDirection = studentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // 不同字段默认设为倒序（方便查看高分或新记录）
+        studentSortField = field;
+        studentSortDirection = 'desc';
+      }
+
+      // 更新图标 (可选，这里通过重新渲染列表来体现)
+      loadStudentPointsList();
     }
 
     // 加载学生积分列表
@@ -1988,9 +2016,36 @@
         studentsArray = studentsArray.filter(s => s.grade === filterValue);
       }
 
-      // 按最后更新时间或学号排序这里暂不强制（或可按积分排）
-      // studentsArray.sort((a, b) => b.points - a.points); 
+      // 应用排序
+      studentsArray.sort((a, b) => {
+        let valA, valB;
+        if (studentSortField === 'id') {
+          valA = a.id;
+          valB = b.id;
+          return studentSortDirection === 'asc'
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        } else {
+          valA = a.points || 0;
+          valB = b.points || 0;
+          return studentSortDirection === 'asc'
+            ? valA - valB
+            : valB - valA;
+        }
+      });
+      const sortByPointsBtn = document.getElementById('sortByPointsBtn');
+      const sortByIdBtn = document.getElementById('sortByIdBtn');
 
+      if (sortByPointsBtn && sortByIdBtn) {
+        // 重置图标样式
+        sortByPointsBtn.querySelector('i').className = 'fa fa-sort text-gray-300 ml-1';
+        sortByIdBtn.querySelector('i').className = 'fa fa-sort text-gray-300 ml-1';
+
+        // 设置当前排序列的图标
+        const currentBtn = studentSortField === 'points' ? sortByPointsBtn : sortByIdBtn;
+        const icon = currentBtn.querySelector('i');
+        icon.className = `fa fa-sort-${studentSortDirection === 'asc' ? 'asc' : 'desc'} text-primary ml-1`;
+      }
       studentList.innerHTML = '';
 
       if (studentsArray.length === 0) {
