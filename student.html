@@ -776,45 +776,92 @@
         return recordDate === today;
       });
 
-      // 2. 计算统计数据
+      // 2. 计算统计数据 (今日)
       const paperCount = todayRecords.length;
-      let totalQuestions = 0;
+      let todayTotalQuestions = 0;
       let totalCorrect = 0;
       let totalPointsEarned = 0;
 
       for (const record of todayRecords) {
         totalPointsEarned += (record.score || 0);
-
-        // 获取套卷信息以计算正确数和总题数
         const paper = papers.find(p => p.id === record.paperId);
         if (paper) {
-          totalQuestions += paper.questionCount;
-          // 计算正确题数
+          todayTotalQuestions += paper.questionCount;
+          // 填空题
+          if (paper.fillInBlankCount > 0) {
+            todayTotalQuestions += parseInt(paper.fillInBlankCount);
+          }
+          // 计算选择题正确数
           if (record.answers && paper.answers) {
             record.answers.forEach((ans, idx) => {
-              if (ans === paper.answers[idx]) {
-                totalCorrect++;
-              }
+              if (ans === paper.answers[idx]) totalCorrect++;
             });
           }
+          // 计算填空题正确数
+          if (record.fillInBlankDetails && Array.isArray(record.fillInBlankDetails)) {
+            const fbCorrect = record.fillInBlankDetails.filter(Boolean).length;
+            totalCorrect += fbCorrect;
+          }
         } else {
-          // 如果找不到套卷信息，尝试用 answers 长度估算
-          if (record.answers) totalQuestions += record.answers.length;
-          // 无法准确计算正确数，只能略过或基于分数估算（不准确），这里保守处理
+          if (record.answers) todayTotalQuestions += record.answers.length;
         }
       }
+      const todayAccuracy = todayTotalQuestions > 0 ? Math.round((totalCorrect / todayTotalQuestions) * 100) : 0;
 
-      const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+      // 3. 计算生涯统计数据 (用于生成个性化鼓励文案)
+      const myAllRecords = allAnswers.filter(r => r.studentId === userId);
+      let lifeTimeTotalQuestions = 0;
+      let lifeTimeCorrect = 0;
 
-      // 3. 生成总结文案
-      // xx同学，今日完成1套试卷，总共10道题目，正确率高达90%，获得了10积分，真是太棒了！
+      myAllRecords.forEach(record => {
+        const paper = papers.find(p => p.id === record.paperId);
+        if (paper) {
+          let qCount = paper.questionCount;
+          if (paper.fillInBlankCount) qCount += parseInt(paper.fillInBlankCount);
+          lifeTimeTotalQuestions += qCount;
+
+          if (record.answers && paper.answers) {
+            record.answers.forEach((ans, idx) => {
+              if (ans === paper.answers[idx]) lifeTimeCorrect++;
+            });
+          }
+          if (record.fillInBlankDetails && Array.isArray(record.fillInBlankDetails)) {
+            lifeTimeCorrect += record.fillInBlankDetails.filter(Boolean).length;
+          }
+        }
+      });
+      const lifeTimeAccuracy = lifeTimeTotalQuestions > 0 ? Math.round((lifeTimeCorrect / lifeTimeTotalQuestions) * 100) : 0;
+
+      // 生成个性化文案
+      let motivationalText = "继续加油！";
+      if (lifeTimeTotalQuestions === 0) {
+        motivationalText = "千里之行始于足下，期待你明天的进步！";
+      } else if (lifeTimeTotalQuestions < 50) {
+        if (lifeTimeAccuracy < 60) motivationalText = "万事开头难，别灰心，坚持练习一定会有收获！";
+        else if (lifeTimeAccuracy < 85) motivationalText = "不错的开始！保持这个节奏，继续挑战自我！";
+        else motivationalText = "开局完美！天赋异禀的你，未来可期！";
+      } else if (lifeTimeTotalQuestions < 200) {
+        if (lifeTimeAccuracy < 60) motivationalText = "做题量上来了，建议多花点时间复盘错题，质量比数量更重要哦！";
+        else if (lifeTimeAccuracy < 85) motivationalText = "稳扎稳打，你的努力正在转化为实力的提升！";
+        else motivationalText = "状态火热！保持高正确率，你就是明日之星！";
+      } else {
+        if (lifeTimeAccuracy < 60) motivationalText = "勤奋的你刷了很多题，试着慢下来复盘一下错题，磨刀不误砍柴工！";
+        else if (lifeTimeAccuracy < 85) motivationalText = "你是练习场上的常客了，保持现在的状态，坚持就是胜利！";
+        else motivationalText = "独孤求败！如此高的正确率和刷题量，你就是传说中的学霸！";
+      }
+
+      // 4. 生成最终 HTML
       summaryText.innerHTML = `
         <span class="font-bold text-lg text-primary">${userName}</span> 同学，<br>
         今日完成 <span class="font-bold text-accent">${paperCount}</span> 套试卷，
-        总共 <span class="font-bold text-accent">${totalQuestions}</span> 道题目，<br>
-        正确率高达 <span class="font-bold text-green-600">${accuracy}%</span>，
-        获得了 <span class="font-bold text-accent">${totalPointsEarned}</span> 积分，<br>
-        真是太棒了！
+        总共 <span class="font-bold text-accent">${todayTotalQuestions}</span> 道题目，<br>
+        正确率为 <span class="font-bold text-green-600">${todayAccuracy}%</span>，
+        获得了 <span class="font-bold text-accent">${totalPointsEarned}</span> 积分。<br>
+        <div class="mt-4 text-gray-500 text-sm border-t pt-3">
+            <i class="fa fa-quote-left text-gray-300 mr-2"></i>
+            ${motivationalText}
+            <i class="fa fa-quote-right text-gray-300 ml-2"></i>
+        </div>
       `;
 
       // 4. 显示弹窗
