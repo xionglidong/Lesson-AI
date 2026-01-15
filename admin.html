@@ -660,7 +660,7 @@
           </div>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-6 mb-6">
+        <div class="grid md:grid-cols-1 gap-6 mb-6">
           <!-- 正确率图表 -->
           <div class="bg-white border rounded-lg p-4 shadow-sm">
             <h4 class="font-bold text-gray-700 mb-4 text-center">每题正确率分布</h4>
@@ -670,18 +670,13 @@
           </div>
 
           <!-- 选项分布图表 -->
-          <div class="bg-white border rounded-lg p-4 shadow-sm">
-            <div class="flex justify-between items-center mb-4">
-              <h4 class="font-bold text-gray-700">选项分布详情</h4>
-              <select id="questionSelector"
-                class="text-sm border-gray-300 border rounded px-2 py-1 focus:ring-2 focus:ring-purple-500 bg-white">
-                <!-- 动态填充题目 -->
-              </select>
+          <div class="bg-white border rounded-lg p-4 shadow-sm flex flex-col h-[400px]">
+            <h4 class="font-bold text-gray-700 mb-4 flex-shrink-0">选项分布详情 (所有题目)</h4>
+            <div id="distributionGrid"
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pr-2 flex-grow">
+              <!-- 动态填充题目分布 -->
             </div>
-            <div class="relative h-64 w-full flex items-center justify-center">
-              <canvas id="distributionChart"></canvas>
-            </div>
-            <p class="text-xs text-gray-400 text-center mt-2">点击图例可隐藏/显示数据</p>
+            <p class="text-xs text-gray-400 text-center mt-2 flex-shrink-0">绿色表示正确答案，红色表示错误选项</p>
           </div>
         </div>
       </div>
@@ -2205,22 +2200,13 @@
     const analysisModal = document.getElementById('analysisModal');
     const analysisModalContent = document.getElementById('analysisModalContent');
     const closeAnalysisModalBtn = document.getElementById('closeAnalysisModalBtn');
-    const questionSelector = document.getElementById('questionSelector');
+    const distributionGrid = document.getElementById('distributionGrid');
     let correctnessChartInstance = null;
-    let distributionChartInstance = null;
-    let currentAnalysisData = null; // 缓存当前分析的数据
 
     // 初始化分析功能
     (function initAnalysis() {
       closeAnalysisModalBtn.addEventListener('click', closeAnalysisModal);
       analysisModal.addEventListener('click', e => e.target === analysisModal && closeAnalysisModal());
-
-      // 监听下拉框变化
-      questionSelector.addEventListener('change', function () {
-        if (currentAnalysisData) {
-          updateDistributionChart(currentAnalysisData, parseInt(this.value));
-        }
-      });
     })();
 
     function closeAnalysisModal() {
@@ -2248,7 +2234,6 @@
 
       // 计算统计数据
       const stats = calculateStats(paper, paperAnswers);
-      currentAnalysisData = stats; // 缓存供下拉框使用
 
       // 渲染核心指标
       document.getElementById('statAvg').textContent = stats.average;
@@ -2257,14 +2242,7 @@
       document.getElementById('statMax').textContent = stats.max;
       document.getElementById('statMin').textContent = stats.min;
 
-      // 渲染下拉框
-      questionSelector.innerHTML = '';
-      paper.answers.forEach((_, index) => {
-        const option = document.createElement('option');
-        option.value = index;
-        option.textContent = `第 ${index + 1} 题`;
-        questionSelector.appendChild(option);
-      });
+
 
       // 渲染图表
       renderCharts(stats);
@@ -2343,7 +2321,6 @@
     function renderCharts(stats) {
       // 销毁旧图表
       if (correctnessChartInstance) correctnessChartInstance.destroy();
-      if (distributionChartInstance) distributionChartInstance.destroy();
 
       // 1. 正确率图表
       const ctxCorrect = document.getElementById('correctnessChart').getContext('2d');
@@ -2374,55 +2351,52 @@
         }
       });
 
-      // 2. 选项分布图表 (默认显示第一题)
-      updateDistributionChart(stats, 0);
+      // 2. 渲染选项分布列表
+      renderDistributionGrid(stats);
     }
 
-    function updateDistributionChart(stats, questionIndex) {
-      if (distributionChartInstance) distributionChartInstance.destroy();
+    function renderDistributionGrid(stats) {
+      distributionGrid.innerHTML = '';
 
-      const ctxDist = document.getElementById('distributionChart').getContext('2d');
-      const qStat = stats.questionStats[questionIndex];
-      const dataDist = [qStat.distribution.A, qStat.distribution.B, qStat.distribution.C, qStat.distribution.D];
-      const correctAnswer = qStat.correctAnswer;
+      stats.questionStats.forEach((qStat, index) => {
+        const totalAnswers = Object.values(qStat.distribution).reduce((a, b) => a + b, 0);
 
-      // 根据正确答案给不同颜色
-      const backgroundColors = ['A', 'B', 'C', 'D'].map(opt =>
-        opt === correctAnswer ? 'rgba(16, 185, 129, 0.6)' : 'rgba(239, 68, 68, 0.6)'
-      );
-      const borderColors = ['A', 'B', 'C', 'D'].map(opt =>
-        opt === correctAnswer ? 'rgba(16, 185, 129, 1)' : 'rgba(239, 68, 68, 1)'
-      );
+        const card = document.createElement('div');
+        card.className = 'border rounded p-3 text-sm bg-gray-50';
 
-      distributionChartInstance = new Chart(ctxDist, {
-        type: 'bar',
-        data: {
-          labels: ['A', 'B', 'C', 'D'],
-          datasets: [{
-            label: `第${questionIndex + 1}题 选项分布 (正确答案: ${correctAnswer})`,
-            data: dataDist,
-            backgroundColor: backgroundColors,
-            borderColor: borderColors,
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                stepSize: 1
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: true // 显示图例以提示正确答案
-            }
-          }
-        }
+        const header = document.createElement('div');
+        header.className = 'font-bold mb-3 flex justify-between items-center';
+        header.innerHTML = `
+          <span>第 ${index + 1} 题</span>
+          <span class="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">正确答案: ${qStat.correctAnswer}</span>
+        `;
+        card.appendChild(header);
+
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'space-y-2';
+
+        ['A', 'B', 'C', 'D'].forEach(opt => {
+          const count = qStat.distribution[opt] || 0;
+          const percentage = totalAnswers > 0 ? ((count / totalAnswers) * 100).toFixed(1) : 0;
+          const isCorrect = opt === qStat.correctAnswer;
+
+          let barColorClass = isCorrect ? 'bg-green-500' : 'bg-red-400';
+          if (count === 0 && !isCorrect) barColorClass = 'bg-gray-200'; // No answers for wrong option
+
+          const row = document.createElement('div');
+          row.className = 'flex items-center';
+          row.innerHTML = `
+             <span class="w-4 font-medium ${isCorrect ? 'text-green-600' : 'text-gray-500'}">${opt}</span>
+             <div class="flex-1 bg-gray-200 rounded-full h-4 mx-2 relative overflow-hidden">
+                <div class="${barColorClass} h-full transition-all duration-500" style="width: ${percentage}%"></div>
+             </div>
+             <span class="text-xs text-gray-500 w-16 text-right">${count}人 (${percentage}%)</span>
+          `;
+          optionsContainer.appendChild(row);
+        });
+
+        card.appendChild(optionsContainer);
+        distributionGrid.appendChild(card);
       });
     }
 
