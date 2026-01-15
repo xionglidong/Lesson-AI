@@ -2307,6 +2307,22 @@
         return result;
       });
 
+      // 填空题分析
+      const fillInBlankStats = [];
+      const fbCount = parseInt(paper.fillInBlankCount || 0);
+
+      for (let i = 0; i < fbCount; i++) {
+        let correctCount = 0;
+        answers.forEach(a => {
+          if (a.fillInBlankDetails && a.fillInBlankDetails[i]) {
+            correctCount++;
+          }
+        });
+        fillInBlankStats.push({
+          correctRate: count > 0 ? ((correctCount / count) * 100).toFixed(1) : 0
+        });
+      }
+
       return {
         average,
         median,
@@ -2314,6 +2330,7 @@
         max: scores[count - 1],
         min: scores[0],
         questionStats,
+        fillInBlankStats,
         totalStudents: count
       };
     }
@@ -2324,8 +2341,30 @@
 
       // 1. 正确率图表
       const ctxCorrect = document.getElementById('correctnessChart').getContext('2d');
-      const labels = stats.questionStats.map((_, i) => `第${i + 1}题`);
-      const dataCorrect = stats.questionStats.map(s => s.correctRate);
+
+      // 构建标签和数据
+      const mcLabels = stats.questionStats.map((_, i) => `选择${i + 1}`);
+      const fbLabels = (stats.fillInBlankStats || []).map((_, i) => `填空${i + 1}`);
+      const labels = [...mcLabels, ...fbLabels];
+
+      const mcData = stats.questionStats.map(s => s.correctRate);
+      const fbData = (stats.fillInBlankStats || []).map(s => s.correctRate);
+      const dataCorrect = [...mcData, ...fbData];
+
+      // 颜色区分
+      const mcColor = 'rgba(79, 70, 229, 0.6)'; // Primary
+      const fbColor = 'rgba(16, 185, 129, 0.6)'; // Green
+      const backgroundColors = [
+        ...new Array(mcData.length).fill(mcColor),
+        ...new Array(fbData.length).fill(fbColor)
+      ];
+
+      const mcBorder = 'rgba(79, 70, 229, 1)';
+      const fbBorder = 'rgba(16, 185, 129, 1)';
+      const borderColors = [
+        ...new Array(mcData.length).fill(mcBorder),
+        ...new Array(fbData.length).fill(fbBorder)
+      ];
 
       correctnessChartInstance = new Chart(ctxCorrect, {
         type: 'bar',
@@ -2334,8 +2373,8 @@
           datasets: [{
             label: '正确率 (%)',
             data: dataCorrect,
-            backgroundColor: 'rgba(79, 70, 229, 0.6)',
-            borderColor: 'rgba(79, 70, 229, 1)',
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
             borderWidth: 1
           }]
         },
