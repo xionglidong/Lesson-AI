@@ -1737,6 +1737,21 @@
           fbVideosHtml += '</div></div>';
         }
 
+        // 生成填空题每题判定详情
+        let judgmentsHtml = '';
+        if (latestRecord.fillInBlankDetails && Array.isArray(latestRecord.fillInBlankDetails)) {
+          judgmentsHtml = '<div class="mt-4"><h5 class="text-sm font-bold text-gray-600 mb-2">自评详情</h5><div class="grid grid-cols-3 md:grid-cols-5 gap-2">';
+          latestRecord.fillInBlankDetails.forEach((isCorrect, idx) => {
+            judgmentsHtml += `
+              <div class="px-2 py-1.5 rounded border flex items-center justify-center space-x-2 ${isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}">
+                 <span class="text-xs font-medium">题${idx + 1}</span>
+                 <i class="fa ${isCorrect ? 'fa-check' : 'fa-times'} text-sm"></i>
+              </div>
+            `;
+          });
+          judgmentsHtml += '</div></div>';
+        }
+
         const fbDetailItem = document.createElement('div');
         fbDetailItem.className = 'mt-6 border-t pt-4';
         fbDetailItem.innerHTML = `
@@ -1751,6 +1766,7 @@
                       <img src="${paper.fillInBlankAnswerImage || ''}" class="w-full h-auto rounded object-contain cursor-pointer hover:opacity-90" onclick="showImagePreview(this.src)" />
                    </div>
                 </div>
+                ${judgmentsHtml}
                 ${fbVideosHtml}
             `;
         historyDetailsList.appendChild(fbDetailItem);
