@@ -1837,9 +1837,14 @@
 
       if (!currentPaper) return;
 
-      // 检查是否已作答 (只用于界面提示，不阻止作答)
+      // 检查是否已作答
       const latestRecord = await getLatestAnswerRecord(paperId);
       const hasAnswered = latestRecord !== null;
+
+      if (hasAnswered) {
+        showGeneralModal('提示', '该套卷您已完成作答，请查看详情。', 'warning');
+        return;
+      }
 
       // *** 优化 1: 启动计时器 ***
       stopTimer(); // 确保旧计时器停止
