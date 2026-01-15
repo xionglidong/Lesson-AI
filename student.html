@@ -168,7 +168,9 @@
         </div>
       </div>
       <div class="mt-4 pt-4 border-t">
-        <p class="text-gray-600 mt-1 mb-1">当前称号: <span id="currentRankSpan" class="text-sm text-gray-500 mr-5" style="font-size: 18px;"></span> 距离: <span id="nextRankSpan" class="text-sm text-gray-500" style="font-size: 18px;"></span> </p>
+        <p class="text-gray-600 mt-1 mb-1">当前称号: <span id="currentRankSpan" class="text-sm text-gray-500 mr-5"
+            style="font-size: 18px;"></span> 距离: <span id="nextRankSpan" class="text-sm text-gray-500"
+            style="font-size: 18px;"></span> </p>
         <div class="flex items-center">
           <div class="w-full bg-gray-200 rounded-full h-2.5">
             <div id="points-progress" class="bg-accent h-2.5 rounded-full" style="width: 80%"></div>
@@ -470,26 +472,36 @@
     <!-- 退出总结弹窗 -->
     <div id="logoutSummaryModal"
       class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
-      <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center transform transition-all scale-95 opacity-0"
+      <div
+        class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all scale-95 opacity-0 overflow-hidden"
         id="logoutSummaryContent">
-        <div class="text-primary text-4xl mb-4">
-          <i class="fa fa-star"></i>
-        </div>
-        <h3 class="text-xl font-bold text-gray-800 mb-4">今日学习成果</h3>
-        <div class="bg-blue-50 p-4 rounded-lg mb-6">
-          <p class="text-gray-700 leading-relaxed" id="logoutSummaryText">
-            正在计算今日数据...
-          </p>
-        </div>
-        <div class="flex justify-center space-x-4">
-          <button id="cancelLogoutBtn"
-            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-            取消
-          </button>
-          <button id="confirmLogoutBtn"
-            class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-            退出
-          </button>
+        <!-- 头部装饰 -->
+        <div class="bg-primary h-2 w-full"></div>
+
+        <div class="p-8">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-black text-gray-800">学习结算</h3>
+            <div
+              class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 text-xl shadow-inner">
+              <i class="fa fa-trophy"></i>
+            </div>
+          </div>
+
+          <div id="logoutSummaryText">
+            <!-- 动态生成的内容将插入这里 -->
+            正在生成成就卡片...
+          </div>
+
+          <div class="flex grid grid-cols-2 gap-4 mt-8">
+            <button id="cancelLogoutBtn"
+              class="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-all font-bold">
+              继续练习
+            </button>
+            <button id="confirmLogoutBtn"
+              class="px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-all font-bold">
+              确认退出
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -852,15 +864,36 @@
 
       // 4. 生成最终 HTML
       summaryText.innerHTML = `
-        <span class="font-bold text-lg text-primary">${userName}</span> 同学，<br>
-        今日完成 <span class="font-bold text-accent">${paperCount}</span> 套试卷，
-        总共 <span class="font-bold text-accent">${todayTotalQuestions}</span> 道题目，<br>
-        正确率为 <span class="font-bold text-green-600">${todayAccuracy}%</span>，
-        获得了 <span class="font-bold text-accent">${totalPointsEarned}</span> 积分。<br>
-        <div class="mt-4 text-gray-500 text-sm border-t pt-3">
-            <i class="fa fa-quote-left text-gray-300 mr-2"></i>
-            ${motivationalText}
-            <i class="fa fa-quote-right text-gray-300 ml-2"></i>
+        <div class="space-y-6">
+          <p class="text-gray-600"><span class="font-bold text-primary text-lg">${userName}</span> 同学，今日收获</p>
+          
+          <!-- 核心指标网格 -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+              <p class="text-xs text-blue-500 font-bold mb-1">完成试卷</p>
+              <p class="text-2xl font-black text-blue-700">${paperCount}<span class="text-sm ml-1">套</span></p>
+            </div>
+            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+              <p class="text-xs text-indigo-500 font-bold mb-1">训练题目</p>
+              <p class="text-2xl font-black text-indigo-700">${todayTotalQuestions}<span class="text-sm ml-1">道</span></p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-2xl border border-green-100">
+              <p class="text-xs text-green-500 font-bold mb-1">平均正确率</p>
+              <p class="text-2xl font-black text-green-700">${todayAccuracy}%</p>
+            </div>
+            <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+              <p class="text-xs text-orange-500 font-bold mb-1">获得积分</p>
+              <p class="text-2xl font-black text-orange-700">+${totalPointsEarned}</p>
+            </div>
+          </div>
+
+          <!-- 激励语卡片 -->
+          <div class="relative bg-gray-50 p-5 rounded-2xl border border-gray-100 overflow-hidden">
+            <i class="fa fa-quote-left absolute -top-2 -left-1 text-gray-200 text-4xl opacity-50"></i>
+            <p class="relative z-10 text-gray-600 italic leading-relaxed text-sm">
+              ${motivationalText}
+            </p>
+          </div>
         </div>
       `;
 
@@ -1564,7 +1597,7 @@
       grade2PaperCount.textContent = `${grade2Papers.length}套`;
       grade3PaperCount.textContent = `${grade3Papers.length}套`;
 
-      // 渲染各年级套卷列表
+      // 渲染年级套卷列表
       renderPaperList(grade1PaperList, grade1Papers);
       renderPaperList(grade2PaperList, grade2Papers);
       renderPaperList(grade3PaperList, grade3Papers);
