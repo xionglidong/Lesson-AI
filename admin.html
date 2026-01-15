@@ -651,13 +651,16 @@
             <p class="text-xs text-purple-500 mb-1">众数 (Mode)</p>
             <p class="text-xl font-bold text-purple-700" id="statMode">--</p>
           </div>
-          <div class="bg-red-50 p-4 rounded-lg text-center">
+          <div class="bg-red-50 p-4 rounded-lg text-center flex flex-col justify-center">
             <p class="text-xs text-red-500 mb-1">最高分 (Max)</p>
             <p class="text-xl font-bold text-red-700" id="statMax">--</p>
+            <div id="statMaxStudents" class="text-[10px] text-red-600 mt-1 line-clamp-2 overflow-hidden" title=""></div>
           </div>
-          <div class="bg-orange-50 p-4 rounded-lg text-center">
+          <div class="bg-orange-50 p-4 rounded-lg text-center flex flex-col justify-center">
             <p class="text-xs text-orange-500 mb-1">最低分 (Min)</p>
             <p class="text-xl font-bold text-orange-700" id="statMin">--</p>
+            <div id="statMinStudents" class="text-[10px] text-orange-600 mt-1 line-clamp-2 overflow-hidden" title="">
+            </div>
           </div>
         </div>
 
@@ -2254,6 +2257,18 @@
       document.getElementById('statMax').textContent = stats.max;
       document.getElementById('statMin').textContent = stats.min;
 
+      // 渲染最高分/最低分学生名单
+      const maxStudentsEl = document.getElementById('statMaxStudents');
+      const minStudentsEl = document.getElementById('statMinStudents');
+
+      const maxNames = stats.maxStudents.map(s => `${s.name}(${s.id})`).join('、');
+      const minNames = stats.minStudents.map(s => `${s.name}(${s.id})`).join('、');
+
+      maxStudentsEl.textContent = maxNames || '';
+      maxStudentsEl.title = maxNames || '';
+      minStudentsEl.textContent = minNames || '';
+      minStudentsEl.title = minNames || '';
+
 
 
       // 渲染图表
@@ -2345,12 +2360,31 @@
         });
       }
 
+      // 查找最高分和最低分学生 (去重)
+      const maxScore = scores[count - 1];
+      const minScore = scores[0];
+
+      const getUniqueStudents = (score) => {
+        const studentMap = new Map();
+        answers.filter(a => a.score === score).forEach(a => {
+          if (!studentMap.has(a.studentId)) {
+            studentMap.set(a.studentId, { name: a.studentName, id: a.studentId });
+          }
+        });
+        return Array.from(studentMap.values());
+      };
+
+      const maxStudents = getUniqueStudents(maxScore);
+      const minStudents = getUniqueStudents(minScore);
+
       return {
         average,
         median,
         mode: mode.join(', '),
-        max: scores[count - 1],
-        min: scores[0],
+        max: maxScore,
+        min: minScore,
+        maxStudents,
+        minStudents,
         questionStats,
         fillInBlankStats,
         totalStudents: count
