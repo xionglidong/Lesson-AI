@@ -1981,15 +1981,15 @@
 
       for (let i = 0; i < count; i++) {
         const item = document.createElement('div');
-        item.className = 'border rounded p-3 flex justify-between items-center';
+        item.className = 'border rounded p-3';
         item.innerHTML = `
-            <span class="font-medium text-gray-700">第 ${i + 1} 题</span>
+            <div class="font-medium text-gray-700">第 ${i + 1} 题</div>
             <div class="flex space-x-2">
                 <button type="button" class="fb-judge-btn p-1 px-3 rounded border border-gray-300 hover:bg-gray-100 text-gray-400 transition-colors" data-index="${i}" data-val="true">
-                    <i class="fa fa-check"></i> 对
+                    <i class="fa fa-check"></i>
                 </button>
                 <button type="button" class="fb-judge-btn p-1 px-3 rounded border border-gray-300 hover:bg-gray-100 text-gray-400 transition-colors" data-index="${i}" data-val="false">
-                    <i class="fa fa-times"></i> 错
+                    <i class="fa fa-times"></i>
                 </button>
             </div>
           `;
