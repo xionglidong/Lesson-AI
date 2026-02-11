@@ -458,7 +458,7 @@
           <i class="fa fa-times text-2xl"></i>
         </button>
         <div class="aspect-w-16 aspect-h-9 bg-black rounded-lg overflow-hidden">
-          <video id="explanationVideo" controls class="w-full h-full object-contain">
+          <video id="explanationVideo" controls class="object-contain" style="width: 880px;height: 500px;">
             <source src="" type="video/mp4">
             您的浏览器不支持 HTML5 视频。
           </video>
@@ -520,15 +520,56 @@
     });
 
     // --- 数据存取工具函数 ---
+    const API_BASE = `${window.location.protocol}//${window.location.hostname}:3000/api`;
+    const STUDENT_TOKEN_KEY = 'studentToken';
 
-    // 使用 LocalForage 异步获取数据
-    async function getData(key) {
-      return await localforage.getItem(key);
+    function getStudentToken() {
+      return localStorage.getItem(STUDENT_TOKEN_KEY);
     }
 
-    // 使用 LocalForage 异步保存数据
+    function setStudentToken(token) {
+      localStorage.setItem(STUDENT_TOKEN_KEY, token);
+    }
+
+    function clearStudentToken() {
+      localStorage.removeItem(STUDENT_TOKEN_KEY);
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = options.headers || {};
+      const token = getStudentToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+      const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `请求失败: ${res.status}`);
+      }
+      return res.json();
+    }
+
+    async function getData(key) {
+      return await apiFetch(`/storage/${key}`);
+    }
+
     async function saveData(key, value) {
-      await localforage.setItem(key, value);
+      return await apiFetch(`/storage/${key}`, {
+        method: 'PUT',
+        body: JSON.stringify(value)
+      });
+    }
+
+    function saveStudentInfo(info) {
+      localStorage.setItem(STUDENT_INFO_KEY, JSON.stringify(info));
+    }
+
+    function loadStudentInfo() {
+      const raw = localStorage.getItem(STUDENT_INFO_KEY);
+      return raw ? JSON.parse(raw) : {};
     }
 
     // 全局变量 - 登录和积分相关
@@ -653,42 +694,46 @@
 
     // 初始化
     async function init() {
-      // 首次加载时同步加载必要数据
-      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
-      exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
-      prizes = await getData(PRIZES_STORAGE_KEY) || [];
+      // 尝试恢复会话（基于 token）
+      const token = getStudentToken();
+      if (token) {
+        try {
+          const profile = await apiFetch('/student/profile');
+          if (profile) {
+            userName = profile.name;
+            userId = profile.studentNo;
+            userGrade = profile.grade || '';
+            userPoints = profile.points || 0;
 
-      // 尝试恢复会话
-      studentInfo = await getData(STUDENT_INFO_KEY) || {};
-      if (studentInfo.name) {
-        userName = studentInfo.name;
-        userId = studentInfo.id;
-        userGrade = studentInfo.grade || '';
+            studentInfo = { name: userName, id: userId, grade: userGrade };
+            saveStudentInfo(studentInfo);
 
-        // 自动填充输入框 (可选，增强体验)
-        studentNameInput.value = userName;
-        studentIdInput.value = userId;
+            studentNameInput.value = userName;
+            studentIdInput.value = userId;
 
-        // 获取最新积分
-        if (studentPointsData[userId]) {
-          userPoints = studentPointsData[userId].points;
+            document.getElementById('user-name-display').textContent = userName;
+            document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'}`;
+            updateUserPointsDisplay();
+
+            document.getElementById('login-card').classList.add('hidden');
+            userPointsCard.classList.remove('hidden');
+            exchangeHistory.classList.remove('hidden');
+            examContainer.classList.remove('hidden');
+
+            // 首次加载时同步加载必要数据
+            studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
+            exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
+            prizes = await getData(PRIZES_STORAGE_KEY) || [];
+            await initPrizes();
+
+            await calculateUserRank();
+            await loadAndRenderPapers();
+            await loadExchangeRecords();
+            updatePrizeButtons();
+          }
+        } catch (e) {
+          clearStudentToken();
         }
-
-        // 恢复 UI 状态
-        document.getElementById('user-name-display').textContent = userName;
-        document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'}`;
-        updateUserPointsDisplay();
-
-        document.getElementById('login-card').classList.add('hidden');
-        userPointsCard.classList.remove('hidden');
-        exchangeHistory.classList.remove('hidden');
-        examContainer.classList.remove('hidden');
-
-        // 加载相关数据
-        await calculateUserRank();
-        await loadAndRenderPapers();
-        await loadExchangeRecords();
-        updatePrizeButtons();
       }
 
       // 绑定登录事件
@@ -746,8 +791,10 @@
       });
 
       // 监听异步数据加载（取代原有的 localStorage 监听）
-      await initPrizes();
-      await loadRankingList();
+      if (getStudentToken()) {
+        await initPrizes();
+        await loadRankingList();
+      }
 
       // 更新退出按钮状态
       updateLogoutButtonState();
@@ -919,7 +966,8 @@
       studentInfo = {};
 
       // 清除本地存储的会话信息
-      await saveData(STUDENT_INFO_KEY, {});
+      clearStudentToken();
+      localStorage.removeItem(STUDENT_INFO_KEY);
 
       // 重置界面
       studentNameInput.value = '';
@@ -980,41 +1028,7 @@
     // 初始化奖品数据
     async function initPrizes() {
       let currentPrizes = await getData(PRIZES_STORAGE_KEY);
-      if (!currentPrizes || currentPrizes.length === 0) {
-        // 初始奖品数据
-        prizes = [
-          {
-            id: 'p1',
-            name: '学习资料包',
-            points: 500,
-            description: '精选编程学习资料',
-            icon: 'fa-book',
-            iconColor: 'text-primary',
-            bgColor: 'bg-blue-100'
-          },
-          {
-            id: 'p2',
-            name: '咖啡券',
-            points: 1000,
-            description: '星巴克中杯咖啡',
-            icon: 'fa-coffee',
-            iconColor: 'text-secondary',
-            bgColor: 'bg-green-100'
-          },
-          {
-            id: 'p3',
-            name: '耳机',
-            points: 3000,
-            description: '无线蓝牙耳机',
-            icon: 'fa-headphones',
-            iconColor: 'text-purple-500',
-            bgColor: 'bg-purple-100'
-          }
-        ];
-        await saveData(PRIZES_STORAGE_KEY, prizes);
-      } else {
-        prizes = currentPrizes;
-      }
+      prizes = currentPrizes || [];
       renderPrizes();
     }
 
@@ -1105,36 +1119,36 @@
         return;
       }
 
-      // 从 IndexedDB 加载学生数据进行校验
-      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
-
-      // *** 严格校验 ***
-      if (!studentPointsData[id]) {
-        alert('登录失败：该学号不存在。请联系老师添加账号。');
+      let loginRes;
+      try {
+        loginRes = await apiFetch('/auth/student/login', {
+          method: 'POST',
+          body: JSON.stringify({ studentId: id, name })
+        });
+      } catch (e) {
+        alert('登录失败：姓名与学号不匹配或不存在。');
         return;
       }
 
-      if (studentPointsData[id].name !== name) {
-        alert('登录失败：姓名与学号不匹配，请检查输入。');
-        return;
-      }
+      setStudentToken(loginRes.token);
+      userName = loginRes.user.name;
+      userId = loginRes.user.studentNo;
+      userGrade = loginRes.user.grade || '';
+      userPoints = loginRes.user.points || 0;
 
-      // 验证通过
-      userName = studentPointsData[id].name; // 使用数据库中的规范姓名
-      userId = id;
-      userGrade = studentPointsData[id].grade || '';
-
-      // 保存会话信息
       studentInfo = { name: userName, id: userId, grade: userGrade };
-      await saveData(STUDENT_INFO_KEY, studentInfo);
-
-      // 获取当前积分
-      userPoints = studentPointsData[id].points;
+      saveStudentInfo(studentInfo);
 
       // 更新用户信息显示
       document.getElementById('user-name-display').textContent = userName;
       document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'}`;
       updateUserPointsDisplay();
+
+      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
+      exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
+      prizes = await getData(PRIZES_STORAGE_KEY) || [];
+
+      await initPrizes();
 
       // 计算排名
       await calculateUserRank();
@@ -1441,24 +1455,20 @@
         return;
       }
 
-      // 记录兑换历史
-      const exchangeRecord = {
-        id: 'exchange_' + Date.now(),
-        studentId: userId,
-        studentName: userName,
-        prizeName: prizeName,
-        points: requiredPoints,
-        time: new Date().toLocaleString()
-      };
+      let exchangeRes;
+      try {
+        exchangeRes = await apiFetch('/student/exchange', {
+          method: 'POST',
+          body: JSON.stringify({ prizeId: prizeCard.dataset.id })
+        });
+      } catch (e) {
+        showGeneralModal('兑换失败', '兑换失败，请稍后重试', 'warning');
+        return;
+      }
 
-      exchangeRecords.push(exchangeRecord);
-      await saveData(EXCHANGE_RECORDS_KEY, exchangeRecords);
-
-      // 更新用户积分
-      userPoints -= requiredPoints;
-      studentPointsData[userId].points = userPoints;
-      studentPointsData[userId].lastUpdate = new Date().toLocaleString();
-      await saveData(STUDENT_POINTS_KEY, studentPointsData);
+      userPoints = exchangeRes.updatedPoints;
+      exchangeRecords = await getData(EXCHANGE_RECORDS_KEY) || [];
+      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
 
       // 刷新UI
       updateUserPointsDisplay();
@@ -1523,63 +1533,9 @@
       // 缓存所有学生的作答记录
       allAnswerRecords = await getData(ANSWER_STORAGE_KEY) || [];
 
-      // 兼容旧数据格式
+      // 后端为空时直接渲染空列表
       if (papers.length === 0) {
-        // 模拟初始数据（仅在无真实数据时使用）
-        const mockPapers = [
-          {
-            id: 'p1',
-            grade: 'grade1',
-            name: '高一数学第一单元测试',
-            questionCount: 5,
-            singlePoints: 2,
-            totalPoints: 10,
-            options: {
-              A: '选项A',
-              B: '选项B',
-              C: '选项C',
-              D: '选项D'
-            },
-            answers: ['A', 'B', 'C', 'D', 'A'],
-            createTime: new Date().toLocaleString()
-          },
-          {
-            id: 'p2',
-            grade: 'grade1',
-            name: '高一语文月考卷',
-            questionCount: 3,
-            singlePoints: 3,
-            totalPoints: 9,
-            options: {
-              A: '选项A',
-              B: '选项B',
-              C: '选项C',
-              D: '选项D'
-            },
-            answers: ['B', 'C', 'A'],
-            createTime: new Date().toLocaleString()
-          },
-          {
-            id: 'p3',
-            grade: 'grade2',
-            name: '高二物理期中测试',
-            questionCount: 4,
-            singlePoints: 2,
-            totalPoints: 8,
-            options: {
-              A: '选项A',
-              B: '选项B',
-              C: '选项C',
-              D: '选项D'
-            },
-            answers: ['C', 'D', 'A', 'B'],
-            createTime: new Date().toLocaleString()
-          }
-        ];
-        await saveData(PAPER_STORAGE_KEY, mockPapers);
-        // 重新加载并渲染
-        const reloadedPapers = await getData(PAPER_STORAGE_KEY) || [];
-        return processAndRenderPapers(reloadedPapers);
+        return processAndRenderPapers([]);
       }
 
       processAndRenderPapers(papers);
@@ -2380,43 +2336,30 @@
       // *** 修正: 加上填空题得分 ***
       score += (fbSelfScore || 0);
 
-      // 获取最新的答题记录
-      let allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+      // 提交到服务器
+      const submitRes = await apiFetch('/student/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          paperId: currentPaper.id,
+          answers: studentAnswers,
+          score: score,
+          totalPoints: currentPaper.totalPoints,
+          timeElapsed: secondsElapsed,
+          fillInBlankStudentImage: uploadedFbImage,
+          fillInBlankScore: fbSelfScore || 0,
+          fillInBlankDetails: fbJudgments
+        })
+      });
 
-      // 保存答题记录 (记录总是保存)
-      const answerRecord = {
-        paperId: currentPaper.id,
-        studentId: userId,
-        studentName: userName,
-        answers: studentAnswers,
-        score: score,
-        totalPoints: currentPaper.totalPoints,
-        submitTime: new Date().toLocaleString(),
-        timeElapsed: secondsElapsed, // 记录耗时
-        isFirstSubmission: isFirstSubmission, // 标记是否为首次提交
-        // 填空题数据
-        fillInBlankStudentImage: uploadedFbImage,
-        fillInBlankScore: fbSelfScore || 0,
-        fillInBlankDetails: fbJudgments // 保存详细判定结果
-      };
-
-      allAnswers.push(answerRecord);
-      await saveData(ANSWER_STORAGE_KEY, allAnswers);
-      allAnswerRecords = allAnswers; // 更新缓存
-
+      allAnswerRecords = await getData(ANSWER_STORAGE_KEY) || [];
 
       let message = '';
-      if (isFirstSubmission) {
-        // 只有首次提交才增加积分
-        // 确保学生积分数据是最新的
-        studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
-        studentPointsData[userId].points += score;
-        studentPointsData[userId].lastUpdate = new Date().toLocaleString();
-        await saveData(STUDENT_POINTS_KEY, studentPointsData);
-        userPoints = studentPointsData[userId].points; // 更新本地积分
+      if (submitRes.isFirstSubmission) {
+        if (submitRes.updatedPoints !== null && submitRes.updatedPoints !== undefined) {
+          userPoints = submitRes.updatedPoints;
+        }
         message = `本次答题得分 **${score} 分** 已加入您的总积分！`;
       } else {
-        // 非首次提交，不增加积分
         message = `您已提交过本套题，本次提交分数 **${score} 分** 不会增加积分。`;
       }
 
@@ -2431,6 +2374,7 @@
 
 
       // 更新UI
+      studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
       await calculateUserRank();
       await loadRankingList();
       await loadAndRenderPapers(); // 刷新套卷列表，更新“已作答”状态

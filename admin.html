@@ -771,6 +771,36 @@
   </div>
 
   <script>
+    const API_BASE = `${window.location.protocol}//${window.location.hostname}:3000/api`;
+    const ADMIN_TOKEN_KEY = 'adminToken';
+
+    function getAdminToken() {
+      return localStorage.getItem(ADMIN_TOKEN_KEY);
+    }
+
+    function setAdminToken(token) {
+      localStorage.setItem(ADMIN_TOKEN_KEY, token);
+    }
+
+    function clearAdminToken() {
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = options.headers || {};
+      const token = getAdminToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+      const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `请求失败: ${res.status}`);
+      }
+      return res.json();
+    }
+
     // 存储键名
     const PAPER_STORAGE_KEY = 'gradePapers'; // 套卷数据
     const ANSWER_STORAGE_KEY = 'studentAnswers'; // 学生答题数据
@@ -787,32 +817,36 @@
 
     // --- 数据存取工具函数 ---
 
-    // 使用 LocalForage 异步获取数据
+    // 使用 API 异步获取数据
     async function getData(key) {
-      // 由于 LocalForage 不支持直接存储布尔值，管理员登录状态仍然使用 localStorage
       if (key === ADMIN_SESSION_KEY) {
         return localStorage.getItem(key);
       }
-      // 如果是导入导出操作需要获取全部键，则直接返回 LocalForage.getItem
-      return await localforage.getItem(key);
+      return await apiFetch(`/storage/${key}`);
     }
 
-    // 使用 LocalForage 异步保存数据
+    // 使用 API 异步保存数据
     async function saveData(key, value) {
       if (key === ADMIN_SESSION_KEY) {
         localStorage.setItem(key, value);
         return;
       }
-      await localforage.setItem(key, value);
+      await apiFetch(`/storage/${key}`, {
+        method: 'PUT',
+        body: JSON.stringify(value)
+      });
     }
 
-    // 使用 LocalForage 异步移除数据
+    // 使用 API 异步移除数据
     async function removeData(key) {
       if (key === ADMIN_SESSION_KEY) {
         localStorage.removeItem(key);
         return;
       }
-      await localforage.removeItem(key);
+      await apiFetch(`/storage/${key}`, {
+        method: 'PUT',
+        body: JSON.stringify([])
+      });
     }
 
 
@@ -900,7 +934,9 @@
     // 初始化
     async function init() {
       // 检查登录状态
-      if (await getData(ADMIN_SESSION_KEY) === 'true') {
+      const token = await getData(ADMIN_SESSION_KEY);
+      if (token) {
+        setAdminToken(token);
         showMainContent();
       } else {
         // 绑定登录事件
@@ -923,10 +959,15 @@
         return;
       }
 
-      if (name === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        await saveData(ADMIN_SESSION_KEY, 'true');
+      try {
+        const res = await apiFetch('/auth/admin/login', {
+          method: 'POST',
+          body: JSON.stringify({ username: name, password })
+        });
+        setAdminToken(res.token);
+        await saveData(ADMIN_SESSION_KEY, res.token);
         showMainContent();
-      } else {
+      } catch (e) {
         showLoginError('用户名或密码错误，请重试（测试账号：admin/admin123）');
         adminPassword.value = '';
       }
@@ -953,6 +994,7 @@
     async function handleLogout() {
       if (confirm('确定要退出登录吗？')) {
         await removeData(ADMIN_SESSION_KEY);
+        clearAdminToken();
         window.location.reload();
       }
     }
@@ -1020,7 +1062,9 @@
     // --- 答题记录列表功能 ---
     function initDailyRecords() {
       // 默认设置为今天
-      const today = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
       recordDateFilter.value = today;
 
       recordDateFilter.addEventListener('change', loadDailyRecords);
@@ -1039,7 +1083,7 @@
         if (!record.submitTime) return false;
         // 兼容不同的日期格式 (YYYY-MM-DD 或 YYYY/MM/DD)
         const datePart = record.submitTime.split(" ")[0].replace(/\//g, '-');
-        return datePart === selectedDate.replace(/\b0+(\d)/g, '$1');
+        return datePart === selectedDate;
       });
 
       // 按时间倒序排列 (解析时间)
@@ -1158,7 +1202,8 @@
     // 初始化存储数据
     async function initStorageData() {
       // 题库默认数据
-      if (!await getData(PAPER_STORAGE_KEY)) {
+      const existingPapers = await getData(PAPER_STORAGE_KEY);
+      if (!existingPapers || existingPapers.length === 0) {
         const defaultPapers = [
           {
             id: 'p1',
@@ -1186,11 +1231,13 @@
         await saveData(PAPER_STORAGE_KEY, defaultPapers);
       }
       // 答题记录默认数据
-      if (!await getData(ANSWER_STORAGE_KEY)) {
+      const existingAnswers = await getData(ANSWER_STORAGE_KEY);
+      if (!existingAnswers || existingAnswers.length === 0) {
         await saveData(ANSWER_STORAGE_KEY, []);
       }
       // 奖品默认数据
-      if (!await getData(PRIZES_STORAGE_KEY)) {
+      const existingPrizes = await getData(PRIZES_STORAGE_KEY);
+      if (!existingPrizes || existingPrizes.length === 0) {
         const defaultPrizes = [
           {
             id: 'p1',
@@ -1205,11 +1252,13 @@
         await saveData(PRIZES_STORAGE_KEY, defaultPrizes);
       }
       // 积分数据默认
-      if (!await getData(STUDENT_POINTS_KEY)) {
+      const existingPoints = await getData(STUDENT_POINTS_KEY);
+      if (!existingPoints || Object.keys(existingPoints).length === 0) {
         await saveData(STUDENT_POINTS_KEY, {});
       }
       // 兑换记录默认
-      if (!await getData(EXCHANGE_RECORDS_KEY)) {
+      const existingExchange = await getData(EXCHANGE_RECORDS_KEY);
+      if (!existingExchange || existingExchange.length === 0) {
         await saveData(EXCHANGE_RECORDS_KEY, []);
       }
     }

@@ -59,11 +59,40 @@
 </div>
 
 <script>
+    const API_BASE = `${window.location.protocol}//${window.location.hostname}:3000/api`;
+    const ADMIN_TOKEN_KEY = 'adminToken';
+
+    function getAdminToken() {
+        return localStorage.getItem(ADMIN_TOKEN_KEY);
+    }
+
+    async function apiFetch(path, options = {}) {
+        const headers = options.headers || {};
+        const token = getAdminToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (!(options.body instanceof FormData)) {
+            headers['Content-Type'] = 'application/json';
+        }
+        const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || `请求失败: ${res.status}`);
+        }
+        return res.json();
+    }
+
     let scoreChart, rankChart;
 
     async function refreshData() {
-        const pointsData = await localforage.getItem('studentPoints') || {};
-        const allAnswers = await localforage.getItem('studentAnswers') || [];
+        const token = getAdminToken();
+        if (!token) {
+            alert('请先在教师后台登录');
+            window.location.href = 'admin.html';
+            return;
+        }
+
+        const pointsData = await apiFetch('/storage/studentPoints') || {};
+        const allAnswers = await apiFetch('/storage/studentAnswers') || [];
         const userListBody = document.getElementById('userList');
         
         const ids = Object.keys(pointsData);
@@ -150,19 +179,19 @@
     async function manualAdd(id, name) {
         const val = prompt(`手动调整【${name}】的积分 (输入 20 为加分，输入 -10 为减分):`, "0");
         if(!val || isNaN(val) || val === "0") return;
-        let p = await localforage.getItem('studentPoints');
+        let p = await apiFetch('/storage/studentPoints');
         p[id].points += parseInt(val);
-        await localforage.setItem('studentPoints', p);
+        await apiFetch('/storage/studentPoints', { method: 'PUT', body: JSON.stringify(p) });
         refreshData();
     }
 
     async function remove(id, name) {
         if(!confirm(`⚠️ 警告：确定要永久删除学生【${name}】吗？此操作不可撤销。`)) return;
-        let p = await localforage.getItem('studentPoints');
+        let p = await apiFetch('/storage/studentPoints');
         delete p[id];
-        await localforage.setItem('studentPoints', p);
-        let a = await localforage.getItem('studentAnswers');
-        await localforage.setItem('studentAnswers', a.filter(i => i.studentId !== id));
+        await apiFetch('/storage/studentPoints', { method: 'PUT', body: JSON.stringify(p) });
+        let a = await apiFetch('/storage/studentAnswers');
+        await apiFetch('/storage/studentAnswers', { method: 'PUT', body: JSON.stringify(a.filter(i => i.studentId !== id)) });
         refreshData();
     }
 
