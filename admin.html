@@ -464,6 +464,8 @@
                       </th>
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">答题详情
                       </th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成长轨迹
+                      </th>
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                     </tr>
                   </thead>
@@ -611,6 +613,33 @@
 
       <div class="max-h-[60vh] overflow-y-auto pr-2" id="studentHistoryList">
         <!-- Content will be injected here -->
+      </div>
+    </div>
+  </div>
+
+  <div id="studentGrowthModal"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl p-8 max-w-3xl w-full mx-4 transform transition-all scale-95 opacity-0"
+      id="studentGrowthModalContent">
+      <div class="flex flex-wrap justify-between items-start gap-3 mb-6">
+        <h3 class="text-xl font-bold text-gray-800" id="studentGrowthModalTitle">学生成长轨迹</h3>
+        <div class="flex items-center gap-3">
+          <div id="admin-growth-period-switch" class="inline-flex rounded-lg border border-gray-200 p-1">
+            <button data-period="week" class="admin-growth-period-btn px-3 py-1 text-sm rounded-md bg-primary text-white">周</button>
+            <button data-period="month" class="admin-growth-period-btn px-3 py-1 text-sm rounded-md text-gray-600">月</button>
+          </div>
+          <button id="closeStudentGrowthModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fa fa-times text-xl"></i>
+          </button>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="h-80">
+          <canvas id="studentGrowthQuestionChart"></canvas>
+        </div>
+        <div class="h-80">
+          <canvas id="studentGrowthAccuracyChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -2100,7 +2129,7 @@
       if (studentsArray.length === 0) {
         studentList.innerHTML = `
           <tr>
-            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
               暂无学生数据
             </td>
           </tr>
@@ -2120,6 +2149,11 @@
           <td class="px-6 py-4 whitespace-nowrap text-sm">
              <button class="text-blue-500 hover:text-blue-700 view-student-history-btn" data-id="${student.id}" data-name="${student.name}">
                 <i class="fa fa-history mr-1"></i> 查看
+             </button>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+             <button class="text-green-600 hover:text-green-800 view-growth-track-btn" data-id="${student.id}" data-name="${student.name}">
+                <i class="fa fa-line-chart mr-1"></i> 查看
              </button>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -2146,6 +2180,12 @@
           showStudentHistory(this.dataset.id, this.dataset.name);
         });
       });
+
+      document.querySelectorAll('.view-growth-track-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          showStudentGrowthTrack(this.dataset.id, this.dataset.name);
+        });
+      });
     }
 
     // 引用历史模态框元素
@@ -2154,6 +2194,17 @@
     const studentHistoryModalTitle = document.getElementById('studentHistoryModalTitle');
     const studentHistoryList = document.getElementById('studentHistoryList');
     const closeStudentHistoryModal = document.getElementById('closeStudentHistoryModal');
+    const studentGrowthModal = document.getElementById('studentGrowthModal');
+    const studentGrowthModalContent = document.getElementById('studentGrowthModalContent');
+    const studentGrowthModalTitle = document.getElementById('studentGrowthModalTitle');
+    const closeStudentGrowthModal = document.getElementById('closeStudentGrowthModal');
+    const studentGrowthQuestionChart = document.getElementById('studentGrowthQuestionChart');
+    const studentGrowthAccuracyChart = document.getElementById('studentGrowthAccuracyChart');
+    const adminGrowthPeriodButtons = document.querySelectorAll('.admin-growth-period-btn');
+    let studentGrowthQuestionChartInstance = null;
+    let studentGrowthAccuracyChartInstance = null;
+    let adminGrowthPeriod = 'week';
+    let currentGrowthStudent = null;
 
     // 绑定关闭事件
     if (closeStudentHistoryModal) // Safety check
@@ -2161,6 +2212,240 @@
         studentHistoryModal.classList.add('hidden');
       });
     studentHistoryModal.addEventListener('click', e => e.target === studentHistoryModal && studentHistoryModal.classList.add('hidden'));
+    if (closeStudentGrowthModal) {
+      closeStudentGrowthModal.addEventListener('click', () => {
+        studentGrowthModal.classList.add('hidden');
+        if (studentGrowthQuestionChartInstance) studentGrowthQuestionChartInstance.destroy();
+        if (studentGrowthAccuracyChartInstance) studentGrowthAccuracyChartInstance.destroy();
+        studentGrowthQuestionChartInstance = null;
+        studentGrowthAccuracyChartInstance = null;
+      });
+    }
+    if (studentGrowthModal) {
+      studentGrowthModal.addEventListener('click', e => {
+        if (e.target !== studentGrowthModal) return;
+        studentGrowthModal.classList.add('hidden');
+        if (studentGrowthQuestionChartInstance) studentGrowthQuestionChartInstance.destroy();
+        if (studentGrowthAccuracyChartInstance) studentGrowthAccuracyChartInstance.destroy();
+        studentGrowthQuestionChartInstance = null;
+        studentGrowthAccuracyChartInstance = null;
+      });
+    }
+
+    function parseSubmitTime(submitTime) {
+      if (!submitTime) return null;
+      const normalized = String(submitTime).replace(/-/g, '/');
+      const dt = new Date(normalized);
+      if (Number.isNaN(dt.getTime())) return null;
+      return dt;
+    }
+
+    function getPeriodStepDays(period) {
+      if (period === 'week') return 7;
+      return 30;
+    }
+
+    function buildBuckets(period, now) {
+      const buckets = [];
+      const stepDays = getPeriodStepDays(period);
+      const pointCount = 12;
+      const endDate = new Date(now);
+      endDate.setHours(0, 0, 0, 0);
+
+      for (let i = pointCount - 1; i >= 0; i--) {
+        const point = new Date(endDate);
+        point.setDate(endDate.getDate() - i * stepDays);
+        const rangeEnd = new Date(point);
+        rangeEnd.setHours(23, 59, 59, 999);
+        const rangeStart = new Date(point);
+        rangeStart.setDate(point.getDate() - stepDays + 1);
+        rangeStart.setHours(0, 0, 0, 0);
+        const key = `${point.getFullYear()}-${String(point.getMonth() + 1).padStart(2, '0')}-${String(point.getDate()).padStart(2, '0')}`;
+        const label = `${point.getFullYear()}-${String(point.getMonth() + 1).padStart(2, '0')}-${String(point.getDate()).padStart(2, '0')}`;
+        buckets.push({ key, label, start: rangeStart, end: rangeEnd });
+      }
+      return buckets;
+    }
+
+    function calcRecordCorrectness(record, paper) {
+      const choiceAnswers = Array.isArray(record.answers) ? record.answers : [];
+      const stdAnswers = Array.isArray(paper && paper.answers) ? paper.answers : [];
+      let choiceCorrect = 0;
+      choiceAnswers.forEach((ans, index) => {
+        if (ans && stdAnswers[index] && ans === stdAnswers[index]) {
+          choiceCorrect += 1;
+        }
+      });
+
+      const fbList = Array.isArray(record.fillInBlankDetails) ? record.fillInBlankDetails : [];
+      let fbCorrect = 0;
+      fbList.forEach((item) => {
+        if (item === true) fbCorrect += 1;
+      });
+
+      return {
+        totalQuestions: choiceAnswers.length + fbList.length,
+        correctQuestions: choiceCorrect + fbCorrect
+      };
+    }
+
+    function buildGrowthTrendData(records, papers, period) {
+      const now = new Date();
+      const buckets = buildBuckets(period, now);
+      const bucketStats = {};
+      buckets.forEach((bucket) => {
+        bucketStats[bucket.key] = { questions: 0, correct: 0 };
+      });
+      const paperMap = {};
+      papers.forEach((paper) => {
+        paperMap[paper.id] = paper;
+      });
+
+      records.forEach((record) => {
+        const submitDate = parseSubmitTime(record.submitTime);
+        if (!submitDate) return;
+        const bucket = buckets.find((item) => submitDate >= item.start && submitDate <= item.end);
+        if (!bucket) return;
+        const result = calcRecordCorrectness(record, paperMap[record.paperId]);
+        bucketStats[bucket.key].questions += result.totalQuestions;
+        bucketStats[bucket.key].correct += result.correctQuestions;
+      });
+
+      return buckets.map((bucket) => {
+        const questions = bucketStats[bucket.key].questions;
+        const correct = bucketStats[bucket.key].correct;
+        const accuracy = questions > 0 ? Number(((correct / questions) * 100).toFixed(2)) : 0;
+        return { label: bucket.label, questionCount: questions, accuracy };
+      });
+    }
+
+    function renderAdminGrowthPeriodButtons(activePeriod) {
+      adminGrowthPeriodButtons.forEach((btn) => {
+        const isActive = btn.dataset.period === activePeriod;
+        btn.classList.toggle('bg-primary', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('text-gray-600', !isActive);
+      });
+    }
+
+    function buildAverageTrendData(allAnswers, allPapers, period, allStudentIds) {
+      const trendData = buildGrowthTrendData(allAnswers, allPapers, period);
+      const studentCount = allStudentIds.length > 0 ? allStudentIds.length : 1;
+      return trendData.map((item) => ({
+        label: item.label,
+        questionCount: Number((item.questionCount / studentCount).toFixed(2)),
+        accuracy: item.accuracy
+      }));
+    }
+
+    async function renderStudentGrowthTrack(studentId) {
+      const allAnswers = await getData(ANSWER_STORAGE_KEY) || [];
+      const allPapers = await getData(PAPER_STORAGE_KEY) || [];
+      const allStudents = await getData(STUDENT_POINTS_KEY) || {};
+      const allStudentIds = Object.keys(allStudents);
+      const studentAnswers = allAnswers.filter(a => a.studentId === studentId);
+      const trendData = buildGrowthTrendData(studentAnswers, allPapers, adminGrowthPeriod);
+      const avgTrendData = buildAverageTrendData(allAnswers, allPapers, adminGrowthPeriod, allStudentIds);
+      renderAdminGrowthPeriodButtons(adminGrowthPeriod);
+
+      if (studentGrowthQuestionChartInstance) studentGrowthQuestionChartInstance.destroy();
+      if (studentGrowthAccuracyChartInstance) studentGrowthAccuracyChartInstance.destroy();
+
+      studentGrowthQuestionChartInstance = new Chart(studentGrowthQuestionChart.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: trendData.map(item => item.label),
+          datasets: [
+            {
+              label: '该生做题数',
+              data: trendData.map(item => item.questionCount),
+              borderColor: '#4F46E5',
+              backgroundColor: 'rgba(79,70,229,0.15)',
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: '全体平均做题数',
+              data: avgTrendData.map(item => item.questionCount),
+              borderColor: '#F59E0B',
+              backgroundColor: 'rgba(245,158,11,0.15)',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: '做题数' },
+              ticks: {
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+
+      studentGrowthAccuracyChartInstance = new Chart(studentGrowthAccuracyChart.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: trendData.map(item => item.label),
+          datasets: [
+            {
+              label: '该生正确率(%)',
+              data: trendData.map(item => item.accuracy),
+              borderColor: '#10B981',
+              backgroundColor: 'rgba(16,185,129,0.15)',
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: '全体平均正确率(%)',
+              data: avgTrendData.map(item => item.accuracy),
+              borderColor: '#EF4444',
+              backgroundColor: 'rgba(239,68,68,0.15)',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: '正确率(%)' }
+            }
+          }
+        }
+      });
+    }
+
+    async function showStudentGrowthTrack(studentId, studentName) {
+      currentGrowthStudent = { id: studentId, name: studentName };
+      studentGrowthModalTitle.textContent = `${studentName} - 成长轨迹`;
+      studentGrowthModal.classList.remove('hidden');
+      setTimeout(() => {
+        studentGrowthModalContent.classList.remove('scale-95', 'opacity-0');
+        studentGrowthModalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+      await renderStudentGrowthTrack(studentId);
+    }
+
+    adminGrowthPeriodButtons.forEach((btn) => {
+      btn.addEventListener('click', async function () {
+        if (!currentGrowthStudent) return;
+        adminGrowthPeriod = this.dataset.period;
+        await renderStudentGrowthTrack(currentGrowthStudent.id);
+      });
+    });
 
     // 显示学生答题历史
     async function showStudentHistory(studentId, studentName) {

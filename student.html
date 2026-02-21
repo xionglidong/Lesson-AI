@@ -7,6 +7,7 @@
   <title>学生答题题系统 - 野渡无人喊你做题题</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script src="./js/localforage.min.js"></script>
 
@@ -221,6 +222,27 @@
         <div
           class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-500 text-xl shadow-sm">
           <i class="fa fa-pie-chart"></i>
+        </div>
+      </div>
+    </div>
+
+    <div id="growth-trend-card" class="bg-white rounded-xl shadow-md p-6 mb-8 hidden fade-in">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h3 class="text-xl font-bold flex items-center">
+          <i class="fa fa-line-chart text-primary mr-2"></i> 成长轨迹
+        </h3>
+        <div id="growth-period-switch" class="inline-flex rounded-lg border border-gray-200 p-1">
+          <button data-period="week" class="growth-period-btn px-3 py-1 text-sm rounded-md bg-primary text-white">周</button>
+          <button data-period="month" class="growth-period-btn px-3 py-1 text-sm rounded-md text-gray-600">月</button>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mb-4">切换周/月查看对应区间的做题数与正确率，并对比全体平均</p>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="h-72">
+          <canvas id="growthQuestionChart"></canvas>
+        </div>
+        <div class="h-72">
+          <canvas id="growthAccuracyChart"></canvas>
         </div>
       </div>
     </div>
@@ -688,9 +710,16 @@
 
     let allAnswerRecords = []; // 用于缓存所有学生的作答记录
     let fbJudgments = null; // 填空题每题判定结果
+    let growthQuestionChartInstance = null;
+    let growthAccuracyChartInstance = null;
+    let growthPeriod = 'week';
 
     const newPaperModal = document.getElementById('new-paper-modal');
     const refreshPapersBtn = document.getElementById('refresh-papers-btn');
+    const growthTrendCard = document.getElementById('growth-trend-card');
+    const growthQuestionChart = document.getElementById('growthQuestionChart');
+    const growthAccuracyChart = document.getElementById('growthAccuracyChart');
+    const growthPeriodButtons = document.querySelectorAll('.growth-period-btn');
 
     // 初始化
     async function init() {
@@ -795,6 +824,13 @@
         await initPrizes();
         await loadRankingList();
       }
+
+      growthPeriodButtons.forEach((btn) => {
+        btn.addEventListener('click', async function () {
+          growthPeriod = this.dataset.period;
+          await renderStudentStats();
+        });
+      });
 
       // 更新退出按钮状态
       updateLogoutButtonState();
@@ -978,6 +1014,11 @@
       userPointsCard.classList.add('hidden');
       exchangeHistory.classList.add('hidden');
       examContainer.classList.add('hidden'); // 隐藏答题区域
+      growthTrendCard.classList.add('hidden');
+      if (growthQuestionChartInstance) growthQuestionChartInstance.destroy();
+      if (growthAccuracyChartInstance) growthAccuracyChartInstance.destroy();
+      growthQuestionChartInstance = null;
+      growthAccuracyChartInstance = null;
 
       // 更新按钮状态
       updateLogoutButtonState();
@@ -1178,6 +1219,207 @@
       updateLogoutButtonState();
     }
 
+    function parseSubmitTime(submitTime) {
+      if (!submitTime) return null;
+      if (submitTime instanceof Date) return submitTime;
+      const normalized = String(submitTime).replace(/-/g, '/');
+      const dt = new Date(normalized);
+      if (Number.isNaN(dt.getTime())) return null;
+      return dt;
+    }
+
+    function getPeriodStepDays(period) {
+      if (period === 'week') return 7;
+      return 30;
+    }
+
+    function buildBuckets(period, now) {
+      const buckets = [];
+      const stepDays = getPeriodStepDays(period);
+      const pointCount = 12;
+      const endDate = new Date(now);
+      endDate.setHours(0, 0, 0, 0);
+
+      for (let i = pointCount - 1; i >= 0; i--) {
+        const point = new Date(endDate);
+        point.setDate(endDate.getDate() - i * stepDays);
+        const rangeEnd = new Date(point);
+        rangeEnd.setHours(23, 59, 59, 999);
+        const rangeStart = new Date(point);
+        rangeStart.setDate(point.getDate() - stepDays + 1);
+        rangeStart.setHours(0, 0, 0, 0);
+        const key = `${point.getFullYear()}-${String(point.getMonth() + 1).padStart(2, '0')}-${String(point.getDate()).padStart(2, '0')}`;
+        const label = `${point.getFullYear()}-${String(point.getMonth() + 1).padStart(2, '0')}-${String(point.getDate()).padStart(2, '0')}`;
+        buckets.push({ key, label, start: rangeStart, end: rangeEnd });
+      }
+      return buckets;
+    }
+
+    function calcRecordCorrectness(record, paper) {
+      const choiceAnswers = Array.isArray(record.answers) ? record.answers : [];
+      const stdAnswers = Array.isArray(paper && paper.answers) ? paper.answers : [];
+      let choiceCorrect = 0;
+      choiceAnswers.forEach((ans, index) => {
+        if (ans && stdAnswers[index] && ans === stdAnswers[index]) {
+          choiceCorrect += 1;
+        }
+      });
+
+      const fbList = Array.isArray(record.fillInBlankDetails) ? record.fillInBlankDetails : [];
+      let fbCorrect = 0;
+      fbList.forEach((item) => {
+        if (item === true) fbCorrect += 1;
+      });
+
+      const totalQuestions = choiceAnswers.length + fbList.length;
+      const correctQuestions = choiceCorrect + fbCorrect;
+      return { totalQuestions, correctQuestions };
+    }
+
+    function buildGrowthTrendData(userRecords, papers, period) {
+      const now = new Date();
+      const buckets = buildBuckets(period, now);
+      const bucketStats = {};
+      buckets.forEach((bucket) => {
+        bucketStats[bucket.key] = { questions: 0, correct: 0 };
+      });
+
+      const paperMap = {};
+      papers.forEach((paper) => {
+        paperMap[paper.id] = paper;
+      });
+
+      userRecords.forEach((record) => {
+        const submitDate = parseSubmitTime(record.submitTime);
+        if (!submitDate) return;
+        const bucket = buckets.find((item) => submitDate >= item.start && submitDate <= item.end);
+        if (!bucket) return;
+        const result = calcRecordCorrectness(record, paperMap[record.paperId]);
+        bucketStats[bucket.key].questions += result.totalQuestions;
+        bucketStats[bucket.key].correct += result.correctQuestions;
+      });
+
+      return buckets.map((bucket) => {
+        const questions = bucketStats[bucket.key].questions;
+        const correct = bucketStats[bucket.key].correct;
+        return {
+          label: bucket.label,
+          questionCount: questions,
+          accuracy: questions > 0 ? Number(((correct / questions) * 100).toFixed(2)) : 0
+        };
+      });
+    }
+
+    function renderGrowthPeriodButtons(activePeriod) {
+      growthPeriodButtons.forEach((btn) => {
+        const isActive = btn.dataset.period === activePeriod;
+        btn.classList.toggle('bg-primary', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('text-gray-600', !isActive);
+      });
+    }
+
+    async function fetchGrowthAverageData(period) {
+      try {
+        return await apiFetch(`/student/growth-average?period=${period}`);
+      } catch (e) {
+        return { labels: [], averageQuestionCount: [], averageAccuracy: [] };
+      }
+    }
+
+    async function renderGrowthTrend(userRecords, papers, period) {
+      if (!growthTrendCard || !growthQuestionChart || !growthAccuracyChart) return;
+      growthTrendCard.classList.remove('hidden');
+      renderGrowthPeriodButtons(period);
+
+      const trendData = buildGrowthTrendData(userRecords, papers, period);
+      const labels = trendData.map((item) => item.label);
+      const questionCounts = trendData.map((item) => item.questionCount);
+      const accuracies = trendData.map((item) => item.accuracy);
+      const avgData = await fetchGrowthAverageData(period);
+      const avgQuestions = avgData.labels && avgData.labels.length === labels.length ? avgData.averageQuestionCount : new Array(labels.length).fill(0);
+      const avgAccuracies = avgData.labels && avgData.labels.length === labels.length ? avgData.averageAccuracy : new Array(labels.length).fill(0);
+
+      if (growthQuestionChartInstance) growthQuestionChartInstance.destroy();
+      if (growthAccuracyChartInstance) growthAccuracyChartInstance.destroy();
+
+      growthQuestionChartInstance = new Chart(growthQuestionChart.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: '我的做题数',
+              data: questionCounts,
+              borderColor: '#4F46E5',
+              backgroundColor: 'rgba(79,70,229,0.15)',
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: '全体平均做题数',
+              data: avgQuestions,
+              borderColor: '#F59E0B',
+              backgroundColor: 'rgba(245,158,11,0.15)',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: '做题数' },
+              ticks: {
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+
+      growthAccuracyChartInstance = new Chart(growthAccuracyChart.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: '我的正确率(%)',
+              data: accuracies,
+              borderColor: '#10B981',
+              backgroundColor: 'rgba(16,185,129,0.15)',
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: '全体平均正确率(%)',
+              data: avgAccuracies,
+              borderColor: '#EF4444',
+              backgroundColor: 'rgba(239,68,68,0.15)',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: '正确率(%)' }
+            }
+          }
+        }
+      });
+    }
+
     // 渲染学生统计数据
     async function renderStudentStats() {
       if (!userId) return;
@@ -1201,6 +1443,7 @@
         statTotalQuestions.textContent = '0';
         statWrongQuestions.textContent = '0';
         statAccuracy.textContent = '0%';
+        await renderGrowthTrend([], papers, growthPeriod);
         return;
       }
 
@@ -1267,6 +1510,7 @@
       statAccuracy.textContent = `${accuracy}%`;
 
       statsDashboard.classList.remove('hidden');
+      await renderGrowthTrend(userRecords, papers, growthPeriod);
     }
 
     // 更新用户积分显示
