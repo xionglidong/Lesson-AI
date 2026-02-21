@@ -456,6 +456,7 @@
                         学号 <i class="fa fa-sort text-gray-300 group-hover:text-gray-500 ml-1"></i>
                       </th>
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">年级</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学期</th>
                       <th id="sortByPointsBtn"
                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group">
                         当前积分 <i class="fa fa-sort text-gray-300 group-hover:text-gray-500 ml-1"></i>
@@ -465,6 +466,8 @@
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">答题详情
                       </th>
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成长轨迹
+                      </th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学期统计
                       </th>
                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                     </tr>
@@ -580,6 +583,14 @@
           </select>
         </div>
         <div>
+          <label class="block text-gray-700 mb-1">学期 <span class="text-red-500">*</span></label>
+          <select id="studentSemesterInput"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50">
+            <option value="上学期">上学期</option>
+            <option value="下学期">下学期</option>
+          </select>
+        </div>
+        <div>
           <label class="block text-gray-700 mb-1">积分</label>
           <input type="number" id="studentPointsInput" min="0" value="0"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50">
@@ -625,8 +636,10 @@
         <h3 class="text-xl font-bold text-gray-800" id="studentGrowthModalTitle">学生成长轨迹</h3>
         <div class="flex items-center gap-3">
           <div id="admin-growth-period-switch" class="inline-flex rounded-lg border border-gray-200 p-1">
-            <button data-period="week" class="admin-growth-period-btn px-3 py-1 text-sm rounded-md bg-primary text-white">周</button>
-            <button data-period="month" class="admin-growth-period-btn px-3 py-1 text-sm rounded-md text-gray-600">月</button>
+            <button data-period="week"
+              class="admin-growth-period-btn px-3 py-1 text-sm rounded-md bg-primary text-white">周</button>
+            <button data-period="month"
+              class="admin-growth-period-btn px-3 py-1 text-sm rounded-md text-gray-600">月</button>
           </div>
           <button id="closeStudentGrowthModal" class="text-gray-400 hover:text-gray-600 transition-colors">
             <i class="fa fa-times text-xl"></i>
@@ -640,6 +653,33 @@
         <div class="h-80">
           <canvas id="studentGrowthAccuracyChart"></canvas>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="studentSemesterStatsModal"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl p-8 max-w-3xl w-full mx-4 transform transition-all scale-95 opacity-0"
+      id="studentSemesterStatsModalContent">
+      <div class="flex justify-between items-start mb-6">
+        <h3 class="text-xl font-bold text-gray-800" id="studentSemesterStatsModalTitle">学期统计</h3>
+        <button id="closeStudentSemesterStatsModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学期</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">做套卷数</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">做题数</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">正确率</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">获取积分</th>
+            </tr>
+          </thead>
+          <tbody id="studentSemesterStatsBody" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -1208,7 +1248,15 @@
 
           for (const key of keys) {
             if (importedData.hasOwnProperty(key)) {
-              await saveData(key, importedData[key]);
+              let payload = importedData[key];
+              if (key === STUDENT_POINTS_KEY && payload && typeof payload === 'object') {
+                Object.keys(payload).forEach((studentNo) => {
+                  if (!payload[studentNo].semester) {
+                    payload[studentNo].semester = '上学期';
+                  }
+                });
+              }
+              await saveData(key, payload);
               importCount++;
             }
           }
@@ -2037,6 +2085,7 @@
     const studentNameInput = document.getElementById('studentNameInput');
     const studentIdInput = document.getElementById('studentIdInput');
     const studentGradeInput = document.getElementById('studentGradeInput');
+    const studentSemesterInput = document.getElementById('studentSemesterInput');
     const studentPointsInput = document.getElementById('studentPointsInput');
     const cancelStudentModal = document.getElementById('cancelStudentModal');
     const saveStudentBtn = document.getElementById('saveStudentBtn');
@@ -2129,7 +2178,7 @@
       if (studentsArray.length === 0) {
         studentList.innerHTML = `
           <tr>
-            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+            <td colspan="10" class="px-6 py-4 text-center text-gray-500">
               暂无学生数据
             </td>
           </tr>
@@ -2140,10 +2189,12 @@
       studentsArray.forEach(student => {
         const row = document.createElement('tr');
         const gradeDisplay = student.grade || '未设置';
+        const semesterDisplay = student.semester || '上学期';
         row.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${student.name}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.id}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${gradeDisplay}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${semesterDisplay}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">${student.points}分</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.lastUpdate || '未知'}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -2156,12 +2207,18 @@
                 <i class="fa fa-line-chart mr-1"></i> 查看
              </button>
           </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+             <button class="text-amber-600 hover:text-amber-800 view-semester-stats-btn" data-id="${student.id}" data-name="${student.name}">
+                <i class="fa fa-bar-chart mr-1"></i> 查看
+             </button>
+          </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <button class="text-indigo-600 hover:text-indigo-900 edit-student-btn" 
               data-id="${student.id}" 
               data-name="${student.name}" 
               data-points="${student.points}"
-              data-grade="${student.grade || '高一'}">
+              data-grade="${student.grade || '高一'}"
+              data-semester="${student.semester || '上学期'}">
               <i class="fa fa-edit mr-1"></i> 编辑
             </button>
           </td>
@@ -2186,6 +2243,12 @@
           showStudentGrowthTrack(this.dataset.id, this.dataset.name);
         });
       });
+
+      document.querySelectorAll('.view-semester-stats-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          showStudentSemesterStats(this.dataset.id, this.dataset.name);
+        });
+      });
     }
 
     // 引用历史模态框元素
@@ -2197,6 +2260,10 @@
     const studentGrowthModal = document.getElementById('studentGrowthModal');
     const studentGrowthModalContent = document.getElementById('studentGrowthModalContent');
     const studentGrowthModalTitle = document.getElementById('studentGrowthModalTitle');
+    const studentSemesterStatsModal = document.getElementById('studentSemesterStatsModal');
+    const studentSemesterStatsModalContent = document.getElementById('studentSemesterStatsModalContent');
+    const studentSemesterStatsModalTitle = document.getElementById('studentSemesterStatsModalTitle');
+    const studentSemesterStatsBody = document.getElementById('studentSemesterStatsBody');
     const closeStudentGrowthModal = document.getElementById('closeStudentGrowthModal');
     const studentGrowthQuestionChart = document.getElementById('studentGrowthQuestionChart');
     const studentGrowthAccuracyChart = document.getElementById('studentGrowthAccuracyChart');
@@ -2230,6 +2297,74 @@
         studentGrowthQuestionChartInstance = null;
         studentGrowthAccuracyChartInstance = null;
       });
+    }
+
+    function closeStudentSemesterStatsModal() {
+      studentSemesterStatsModalContent.classList.remove('scale-100', 'opacity-100');
+      studentSemesterStatsModalContent.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        studentSemesterStatsModal.classList.add('hidden');
+      }, 300);
+    }
+
+    const closeStudentSemesterStatsModalBtn = document.getElementById('closeStudentSemesterStatsModal');
+    if (closeStudentSemesterStatsModalBtn) {
+      closeStudentSemesterStatsModalBtn.addEventListener('click', closeStudentSemesterStatsModal);
+    }
+    if (studentSemesterStatsModal) {
+      studentSemesterStatsModal.addEventListener('click', e => {
+        if (e.target === studentSemesterStatsModal) closeStudentSemesterStatsModal();
+      });
+    }
+
+    function renderSemesterStatsTable(terms = []) {
+      if (!terms.length) {
+        studentSemesterStatsBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-4 py-6 text-center text-gray-500">暂无统计数据</td>
+          </tr>
+        `;
+        return;
+      }
+
+      studentSemesterStatsBody.innerHTML = terms.map((item) => `
+        <tr>
+          <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${item.termLabel || '-'}</td>
+          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${item.paperCount || 0}</td>
+          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${item.questionCount || 0}</td>
+          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${Number(item.accuracy || 0).toFixed(2)}%</td>
+          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${item.earnedPoints || 0}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function showStudentSemesterStats(studentId, studentName) {
+      studentSemesterStatsModalTitle.textContent = `${studentName} - 学期统计`;
+      studentSemesterStatsBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="px-4 py-6 text-center text-gray-500">
+            <i class="fa fa-spinner fa-spin mr-2"></i>加载中...
+          </td>
+        </tr>
+      `;
+
+      studentSemesterStatsModal.classList.remove('hidden');
+      setTimeout(() => {
+        studentSemesterStatsModalContent.classList.remove('scale-95', 'opacity-0');
+        studentSemesterStatsModalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+
+      try {
+        const res = await apiFetch(`/admin/students/${encodeURIComponent(studentId)}/semester-stats`);
+        renderSemesterStatsTable(res?.terms || []);
+      } catch (err) {
+        console.error('加载学期统计失败:', err);
+        studentSemesterStatsBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-4 py-6 text-center text-red-500">加载失败，请稍后重试</td>
+          </tr>
+        `;
+      }
     }
 
     function parseSubmitTime(submitTime) {
@@ -2581,6 +2716,7 @@
       studentIdInput.disabled = false; // 添加时允许输入学号
       studentIdInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
       studentGradeInput.value = '高一';
+      studentSemesterInput.value = '上学期';
       studentPointsInput.value = 0;
 
       studentModal.classList.remove('hidden');
@@ -2598,6 +2734,7 @@
       const name = this.dataset.name;
       const points = this.dataset.points;
       const grade = this.dataset.grade;
+      const semester = this.dataset.semester || '上学期';
 
       studentModalTitle.textContent = '编辑学生信息';
       studentNameInput.value = name;
@@ -2605,6 +2742,7 @@
       studentIdInput.disabled = true; // 编辑时不允许修改学号（作为主键）
       studentIdInput.classList.add('bg-gray-100', 'cursor-not-allowed');
       studentGradeInput.value = grade;
+      studentSemesterInput.value = semester;
       studentPointsInput.value = points;
 
       studentModal.classList.remove('hidden');
@@ -2628,6 +2766,7 @@
       const name = studentNameInput.value.trim();
       const id = studentIdInput.value.trim();
       const grade = studentGradeInput.value;
+      const semester = studentSemesterInput.value || '上学期';
       const points = parseInt(studentPointsInput.value);
 
       if (!name || !id) {
@@ -2647,6 +2786,7 @@
         if (studentPoints[id]) {
           studentPoints[id].name = name;
           studentPoints[id].grade = grade;
+          studentPoints[id].semester = semester;
           studentPoints[id].points = points;
           studentPoints[id].lastUpdate = new Date().toLocaleString() + ' (Admin Edit)';
 
@@ -2668,6 +2808,7 @@
           name: name,
           id: id,
           grade: grade,
+          semester: semester,
           points: points,
           lastUpdate: new Date().toLocaleString() + ' (Created)'
         };
@@ -2692,6 +2833,7 @@
       const data = studentsArray.map(s => ({
         姓名: s.name,
         学号: s.id,
+        学期: s.semester || '上学期',
         当前积分: s.points,
         上次更新时间: s.lastUpdate,
         年级: s.grade || '未设置'

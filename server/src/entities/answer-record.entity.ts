@@ -28,6 +28,16 @@ export class AnswerRecord {
   @Column({ type: 'int' })
   score!: number;
 
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  gradeSnapshot!: string | null;
+
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  semesterSnapshot!: string | null;
+
+  @Index()
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  termKey!: string | null;
+
   @Column({ type: 'int', nullable: true })
   totalPoints!: number | null;
 

@@ -10,6 +10,23 @@ function formatDateTime(input: Date) {
   return `${input.getFullYear()}-${pad(input.getMonth() + 1)}-${pad(input.getDate())} ${pad(input.getHours())}:${pad(input.getMinutes())}:${pad(input.getSeconds())}`;
 }
 
+function normalizeGrade(grade: string | null | undefined): 'grade1' | 'grade2' | 'grade3' | null {
+  if (!grade) return null;
+  const raw = String(grade).trim().toLowerCase();
+  if (raw === 'grade1' || raw === 'grade2' || raw === 'grade3') return raw;
+  if (String(grade).includes('高一')) return 'grade1';
+  if (String(grade).includes('高二')) return 'grade2';
+  if (String(grade).includes('高三')) return 'grade3';
+  return null;
+}
+
+function buildTermKey(grade: string | null | undefined, semester: string | null | undefined): string | null {
+  const normalizedGrade = normalizeGrade(grade);
+  if (!normalizedGrade) return null;
+  const normalizedSemester = semester === '下学期' ? '下学期' : '上学期';
+  return `${normalizedGrade}:${normalizedSemester}`;
+}
+
 @Injectable()
 export class ExchangeService {
   constructor(
@@ -40,6 +57,9 @@ export class ExchangeService {
       prizeId: prize.id,
       prizeName: prize.name,
       points: prize.points,
+      gradeSnapshot: user.grade || null,
+      semesterSnapshot: user.semester || '上学期',
+      termKey: buildTermKey(user.grade, user.semester),
       exchangeTime: new Date()
     });
     await this.exchanges.save(record);

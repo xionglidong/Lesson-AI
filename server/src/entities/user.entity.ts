@@ -34,6 +34,9 @@ export class User {
   @Column({ type: 'varchar', length: 16, nullable: true })
   grade!: string | null;
 
+  @Column({ type: 'varchar', length: 16, nullable: false, default: '上学期' })
+  semester!: string;
+
   @Column({ type: 'int', default: 0 })
   points!: number;
 

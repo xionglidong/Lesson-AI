@@ -20,6 +20,23 @@ interface SubmitPayload {
   fillInBlankDetails?: (boolean | null)[] | null;
 }
 
+function normalizeGrade(grade: string | null | undefined): 'grade1' | 'grade2' | 'grade3' | null {
+  if (!grade) return null;
+  const raw = String(grade).trim().toLowerCase();
+  if (raw === 'grade1' || raw === 'grade2' || raw === 'grade3') return raw;
+  if (String(grade).includes('高一')) return 'grade1';
+  if (String(grade).includes('高二')) return 'grade2';
+  if (String(grade).includes('高三')) return 'grade3';
+  return null;
+}
+
+function buildTermKey(grade: string | null | undefined, semester: string | null | undefined): string | null {
+  const normalizedGrade = normalizeGrade(grade);
+  if (!normalizedGrade) return null;
+  const normalizedSemester = semester === '下学期' ? '下学期' : '上学期';
+  return `${normalizedGrade}:${normalizedSemester}`;
+}
+
 @Injectable()
 export class AnswerService {
   constructor(
@@ -30,6 +47,10 @@ export class AnswerService {
   async submit(studentNo: string, studentName: string, payload: SubmitPayload) {
     const existing = await this.answers.find({ where: { studentId: studentNo, paperId: payload.paperId } });
     const isFirstSubmission = existing.length === 0;
+    const user = await this.users.findOne({ where: { role: 'student', studentNo } });
+    const gradeSnapshot = user?.grade || null;
+    const semesterSnapshot = user?.semester || '上学期';
+    const termKey = buildTermKey(gradeSnapshot, semesterSnapshot);
 
     const record = this.answers.create({
       studentId: studentNo,
@@ -37,6 +58,9 @@ export class AnswerService {
       paperId: payload.paperId,
       answers: payload.answers || [],
       score: payload.score,
+      gradeSnapshot,
+      semesterSnapshot,
+      termKey,
       totalPoints: payload.totalPoints || null,
       submitTime: new Date(),
       timeElapsed: payload.timeElapsed || null,
@@ -49,14 +73,11 @@ export class AnswerService {
     await this.answers.save(record);
 
     let updatedPoints: number | null = null;
-    if (isFirstSubmission) {
-      const user = await this.users.findOne({ where: { role: 'student', studentNo } });
-      if (user) {
-        user.points = (user.points || 0) + payload.score;
-        user.lastUpdate = new Date();
-        await this.users.save(user);
-        updatedPoints = user.points;
-      }
+    if (isFirstSubmission && user) {
+      user.points = (user.points || 0) + payload.score;
+      user.lastUpdate = new Date();
+      await this.users.save(user);
+      updatedPoints = user.points;
     }
 
     const payloadRecord = {

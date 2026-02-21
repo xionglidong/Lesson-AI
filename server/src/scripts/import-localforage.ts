@@ -8,6 +8,7 @@ import { Paper } from '../entities/paper.entity';
 import { AnswerRecord } from '../entities/answer-record.entity';
 import { Prize } from '../entities/prize.entity';
 import { ExchangeRecord } from '../entities/exchange-record.entity';
+import { StudentTermHistory } from '../entities/student-term-history.entity';
 import bcrypt from 'bcryptjs';
 
 async function main() {
@@ -29,7 +30,7 @@ async function main() {
     password: config.db.password,
     database: config.db.database,
     ...(config.db.socketPath ? { socketPath: config.db.socketPath } : {}),
-    entities: [User, Paper, AnswerRecord, Prize, ExchangeRecord],
+    entities: [User, Paper, AnswerRecord, Prize, ExchangeRecord, StudentTermHistory],
     synchronize: true
   });
   await ds.initialize();
@@ -39,9 +40,11 @@ async function main() {
   const answers = ds.getRepository(AnswerRecord);
   const prizes = ds.getRepository(Prize);
   const exchanges = ds.getRepository(ExchangeRecord);
+  const termHistories = ds.getRepository(StudentTermHistory);
 
   await answers.createQueryBuilder().delete().from(AnswerRecord).execute();
   await exchanges.createQueryBuilder().delete().from(ExchangeRecord).execute();
+  await termHistories.createQueryBuilder().delete().from(StudentTermHistory).execute();
   await papers.createQueryBuilder().delete().from(Paper).execute();
   await prizes.createQueryBuilder().delete().from(Prize).execute();
 
@@ -57,10 +60,20 @@ async function main() {
       studentNo,
       name: (info as any).name || '',
       grade: (info as any).grade || null,
+      semester: (info as any).semester || '上学期',
       points: Number((info as any).points || 0),
       lastUpdate: (info as any).lastUpdate ? new Date((info as any).lastUpdate) : null
     });
     await users.save(u);
+    await termHistories.save(
+      termHistories.create({
+        studentId: studentNo,
+        grade: (info as any).grade || null,
+        semester: (info as any).semester || '上学期',
+        startAt: new Date(),
+        endAt: null
+      })
+    );
   }
 
   const papersData: any[] = data.gradePapers || [];
@@ -106,6 +119,9 @@ async function main() {
       paperId: a.paperId,
       answers: a.answers || null,
       score: Number(a.score || 0),
+      gradeSnapshot: a.gradeSnapshot || null,
+      semesterSnapshot: a.semesterSnapshot || null,
+      termKey: a.termKey || null,
       totalPoints: a.totalPoints ? Number(a.totalPoints) : null,
       submitTime: a.submitTime ? new Date(a.submitTime) : new Date(),
       timeElapsed: a.timeElapsed ? Number(a.timeElapsed) : null,
@@ -126,6 +142,9 @@ async function main() {
       prizeId: e.prizeId || null,
       prizeName: e.prizeName || '',
       points: Number(e.points || 0),
+      gradeSnapshot: e.gradeSnapshot || null,
+      semesterSnapshot: e.semesterSnapshot || null,
+      termKey: e.termKey || null,
       exchangeTime: e.exchangeTime ? new Date(e.exchangeTime) : new Date()
     });
     await exchanges.save(record);
