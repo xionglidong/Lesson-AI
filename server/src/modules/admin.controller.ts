@@ -73,7 +73,7 @@ export class AdminController {
       await this.termHistoryRepo.save(
         this.termHistoryRepo.create({
           studentId: studentNo,
-          grade: grade || null,
+          grade: grade || '高一',
           semester: normalizeSemester(semester),
           startAt: now,
           endAt: null
@@ -103,7 +103,7 @@ export class AdminController {
     await this.termHistoryRepo.save(
       this.termHistoryRepo.create({
         studentId: student.studentNo as string,
-        grade: nextGrade || null,
+        grade: nextGrade || '高一',
         semester: nextSemesterNormalized,
         startAt: now,
         endAt: null

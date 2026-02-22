@@ -39,7 +39,7 @@ export class StorageService {
       await this.termHistoryRepo.save(
         this.termHistoryRepo.create({
           studentId: studentNo,
-          grade: grade || null,
+          grade: grade || '高一',
           semester: this.normalizeSemester(semester),
           startAt: now,
           endAt: null
@@ -68,7 +68,7 @@ export class StorageService {
     await this.termHistoryRepo.save(
       this.termHistoryRepo.create({
         studentId: studentNo,
-        grade: nextGrade || null,
+        grade: nextGrade || '高一',
         semester: nextSemesterNormalized,
         startAt: now,
         endAt: null
@@ -123,8 +123,14 @@ export class StorageService {
       case 'gradePapers':
         await this.papers.createQueryBuilder().delete().from(Paper).execute();
         await this.papers.save(
-          (value || []).map((p: any) => ({
+          (value || []).map((p: any, index: number) => ({
             ...p,
+            id: p.id || `paper_${Date.now()}_${index}`,
+            grade: p.grade || 'grade1',
+            name: p.name || `未命名套卷${index + 1}`,
+            questionCount: Number(p.questionCount || 0),
+            singlePoints: Number(p.singlePoints || 0),
+            totalPoints: Number(p.totalPoints || 0),
             createTime: p.createTime ? new Date(p.createTime) : null
           }))
         );
@@ -132,9 +138,17 @@ export class StorageService {
       case 'studentAnswers':
         await this.answers.createQueryBuilder().delete().from(AnswerRecord).execute();
         await this.answers.save(
-          (value || []).map((a: any) => ({
+          (value || []).map((a: any, index: number) => ({
             ...a,
+            studentId: a.studentId || a.id || `unknown_student_${index}`,
+            studentName: a.studentName || '',
+            paperId: a.paperId || `unknown_paper_${index}`,
+            score: Number(a.score || 0),
+            totalPoints: a.totalPoints == null ? null : Number(a.totalPoints),
             submitTime: a.submitTime ? new Date(a.submitTime) : new Date(),
+            timeElapsed: a.timeElapsed == null ? null : Number(a.timeElapsed),
+            isFirstSubmission: Number(a.isFirstSubmission || 0) === 1 ? 1 : 0,
+            fillInBlankScore: Number(a.fillInBlankScore || 0),
             fbJudgments: a.fillInBlankDetails || a.fbJudgments || null
           }))
         );

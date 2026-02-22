@@ -68,7 +68,7 @@ async function main() {
     await termHistories.save(
       termHistories.create({
         studentId: studentNo,
-        grade: (info as any).grade || null,
+        grade: (info as any).grade || '高一',
         semester: (info as any).semester || '上学期',
         startAt: new Date(),
         endAt: null
@@ -80,7 +80,7 @@ async function main() {
   for (const [index, p] of papersData.entries()) {
     const paper = papers.create({
       id: p.id || `p_${Date.now()}_${index}`,
-      grade: p.grade,
+      grade: p.grade || 'grade1',
       name: p.name,
       questionCount: Number(p.questionCount || 0),
       singlePoints: Number(p.singlePoints || 0),

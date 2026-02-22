@@ -82,7 +82,7 @@ export class StudentController {
       await this.termHistoryRepo.save(
         this.termHistoryRepo.create({
           studentId: studentNo,
-          grade: grade || null,
+          grade: grade || '高一',
           semester: this.normalizeSemester(semester),
           startAt: now,
           endAt: null
