@@ -162,7 +162,8 @@
             <span id="user-name-display">张三</span>
             <span class="text-sm text-gray-500 ml-2" id="user-id-display">学号: 2023001</span>
           </h3>
-          <p class="text-gray-600 mt-1">当前排名: <span id="user-rank">第5名</span></p>
+          <p class="text-gray-600 mt-1">当前排名: <span id="user-rank">第5名</span> <span id="user-rank-gap"
+              class="ml-2"></span></p>
         </div>
         <div class="text-right">
           <p class="text-3xl font-bold text-accent" id="user-points">800分</p>
@@ -622,6 +623,7 @@
     let userName = '';
     let userId = '';
     let userGrade = ''; // 新增：用户年级
+    let userSemester = '';
     let userRank = 0;
 
     // 积分等级规则
@@ -757,6 +759,7 @@
             userName = profile.name;
             userId = profile.studentNo;
             userGrade = profile.grade || '';
+            userSemester = profile.semester || '上学期';
             userPoints = profile.points || 0;
 
             studentInfo = { name: userName, id: userId, grade: userGrade };
@@ -766,7 +769,7 @@
             studentIdInput.value = userId;
 
             document.getElementById('user-name-display').textContent = userName;
-            document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'}`;
+            document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'} 学期：${userSemester || '上学期'}`;
             updateUserPointsDisplay();
 
             document.getElementById('login-card').classList.add('hidden');
@@ -1024,6 +1027,7 @@
       userId = '';
       userPoints = 0;
       userGrade = '';
+      userSemester = '';
       studentInfo = {};
 
       // 清除本地存储的会话信息
@@ -1202,6 +1206,7 @@
       userName = loginRes.user.name;
       userId = loginRes.user.studentNo;
       userGrade = loginRes.user.grade || '';
+      userSemester = loginRes.user.semester || '上学期';
       userPoints = loginRes.user.points || 0;
 
       studentInfo = { name: userName, id: userId, grade: userGrade };
@@ -1209,7 +1214,7 @@
 
       // 更新用户信息显示
       document.getElementById('user-name-display').textContent = userName;
-      document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'}`;
+      document.getElementById('user-id-display').textContent = `学号: ${userId} 年级：${userGrade || '未设置'} 学期：${userSemester || '上学期'}`;
       updateUserPointsDisplay();
 
       studentPointsData = await getData(STUDENT_POINTS_KEY) || {};
@@ -1643,10 +1648,26 @@
 
       // 查找当前用户排名
       const userIndex = studentsArray.findIndex(s => s.id === userId);
+      const rankGapEl = document.getElementById('user-rank-gap');
+      if (userIndex < 0) {
+        userRank = 0;
+        document.getElementById('user-rank').textContent = '未上榜';
+        if (rankGapEl) rankGapEl.textContent = '';
+        return;
+      }
       userRank = userIndex + 1;
 
       // 更新排名显示
       document.getElementById('user-rank').textContent = `第${userRank}名`;
+      if (!rankGapEl) return;
+      if (userIndex === 0) {
+        rankGapEl.textContent = '真厉害！';
+        return;
+      }
+      const prev = studentsArray[userIndex - 1];
+      const cur = studentsArray[userIndex];
+      const diff = Math.max(0, Number(prev?.points || 0) - Number(cur?.points || 0));
+      rankGapEl.textContent = `距上一名 ${diff} 积分`;
     }
 
     // 加载排行榜
@@ -1861,10 +1882,32 @@
 
     // 处理和渲染套卷的内部函数
     async function processAndRenderPapers(papers) {
-      // 按年级过滤
-      const grade1Papers = papers.filter(p => p.grade === 'grade1');
-      const grade2Papers = papers.filter(p => p.grade === 'grade2');
-      const grade3Papers = papers.filter(p => p.grade === 'grade3');
+      const allGrade1Papers = papers.filter(p => p.grade === 'grade1');
+      const allGrade2Papers = papers.filter(p => p.grade === 'grade2');
+      const allGrade3Papers = papers.filter(p => p.grade === 'grade3');
+
+      const userAnsweredPaperIds = new Set(
+        allAnswerRecords
+          .filter((item) => item.studentId === userId)
+          .map((item) => item.paperId)
+      );
+
+      const userGradeMap = {
+        '高一': 'grade1',
+        '高二': 'grade2',
+        '高三': 'grade3'
+      };
+      const currentGradeKey = userGradeMap[userGrade] || '';
+
+      const pickVisiblePapers = (gradeKey, source) => {
+        if (!currentGradeKey) return source;
+        if (currentGradeKey === gradeKey) return source;
+        return source.filter((paper) => userAnsweredPaperIds.has(paper.id));
+      };
+
+      const grade1Papers = pickVisiblePapers('grade1', allGrade1Papers);
+      const grade2Papers = pickVisiblePapers('grade2', allGrade2Papers);
+      const grade3Papers = pickVisiblePapers('grade3', allGrade3Papers);
 
       // 更新套卷数量
       grade1PaperCount.textContent = `${grade1Papers.length}套`;
@@ -1876,27 +1919,18 @@
       renderPaperList(grade2PaperList, grade2Papers);
       renderPaperList(grade3PaperList, grade3Papers);
 
-      // *** 核心修改：根据用户年级控制显隐 ***
       const grade1Section = document.getElementById('grade1');
       const grade2Section = document.getElementById('grade2');
       const grade3Section = document.getElementById('grade3');
 
-      // 先全部隐藏 (或者全部显示，取决于默认策略，这里全部隐藏然后按需显示)
-      // 如果 userGrade 为空（未登录或未设置），可能显示全部或者都不显示
-      // 这里的策略是：如果没有 userGrade，显示全部（兼容旧行为）；如果有，只显示对应年级
-
-      if (!userGrade) {
+      if (!currentGradeKey) {
         grade1Section.classList.remove('hidden');
         grade2Section.classList.remove('hidden');
         grade3Section.classList.remove('hidden');
       } else {
-        grade1Section.classList.add('hidden');
-        grade2Section.classList.add('hidden');
-        grade3Section.classList.add('hidden');
-
-        if (userGrade === '高一') grade1Section.classList.remove('hidden');
-        if (userGrade === '高二') grade2Section.classList.remove('hidden');
-        if (userGrade === '高三') grade3Section.classList.remove('hidden');
+        grade1Section.classList.toggle('hidden', grade1Papers.length === 0);
+        grade2Section.classList.toggle('hidden', grade2Papers.length === 0);
+        grade3Section.classList.toggle('hidden', grade3Papers.length === 0);
       }
 
       // 渲染统计数据
